@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>🌸 成長チェック</title>
+<style>
+  :root {
+    --primary: #E8733A;
+    --primary-light: #FDE8D8;
+    --primary-dark: #C4561E;
+    --bg: #FDF6F0;
+    --card: #FFFFFF;
+    --text: #333333;
+    --text-light: #888888;
+    --border: #F0E0D0;
+    --score1: #F44336;
+    --score2: #FF9800;
+    --score3: #8BC34A;
+    --score4: #4CAF50;
+    --score-empty: #E0E0E0;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif; color: var(--text); min-height: 100vh; }
+
+  /* ── Loading & Screens ── */
+  .screen { display: none; min-height: 100vh; }
+  .screen.active { display: block; }
+
+  #loading-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg); }
+  .loading-logo { font-size: 3rem; margin-bottom: 12px; }
+  .loading-text { color: var(--primary); font-size: 1rem; }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--primary-light); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 16px auto; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Registration Screen ── */
+  #reg-screen { background: var(--bg); padding: 40px 24px; }
+  .reg-logo { text-align: center; font-size: 3rem; margin-bottom: 8px; }
+  .reg-title { text-align: center; font-size: 1.3rem; font-weight: bold; color: var(--primary); margin-bottom: 4px; }
+  .reg-sub { text-align: center; font-size: 0.85rem; color: var(--text-light); margin-bottom: 32px; }
+  .reg-card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+  .reg-card h2 { font-size: 1rem; font-weight: bold; margin-bottom: 16px; color: var(--text); }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 0.85rem; color: var(--text-light); margin-bottom: 6px; }
+  .form-group input { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 1rem; font-family: inherit; outline: none; transition: border-color 0.2s; }
+  .form-group input:focus { border-color: var(--primary); }
+  .btn-primary { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 8px; font-family: inherit; transition: background 0.2s; }
+  .btn-primary:active { background: var(--primary-dark); }
+  .class-btns { display: flex; gap: 10px; }
+  .class-btn { flex: 1; padding: 12px; border: 2px solid var(--border); border-radius: 10px; background: white; font-size: 0.95rem; font-family: inherit; cursor: pointer; transition: all 0.15s; color: var(--text-light); }
+  .class-btn.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary); font-weight: bold; }
+
+  /* ── Main App ── */
+  #main-screen { padding-bottom: 80px; }
+  .app-header { background: white; padding: 12px 16px 10px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .header-left { display: flex; align-items: center; gap: 8px; }
+  .header-logo { font-size: 1.4rem; }
+  .header-info { }
+  .header-name { font-size: 0.95rem; font-weight: bold; color: var(--text); }
+  .header-class { font-size: 0.75rem; color: var(--text-light); }
+  .btn-edit { font-size: 0.75rem; color: var(--primary); background: var(--primary-light); border: none; padding: 6px 10px; border-radius: 8px; cursor: pointer; font-family: inherit; }
+
+  /* ── Date Selector ── */
+  .date-selector { background: white; padding: 10px 16px 12px; border-bottom: 1px solid var(--border); }
+  .date-label { font-size: 0.75rem; color: var(--text-light); margin-bottom: 8px; }
+  .date-tabs { display: flex; gap: 6px; }
+  .date-tab { flex: 1; padding: 7px 4px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.75rem; text-align: center; cursor: pointer; background: white; font-family: inherit; color: var(--text-light); transition: all 0.15s; }
+  .date-tab.active { background: var(--primary); border-color: var(--primary); color: white; font-weight: bold; }
+
+  /* ── Category Tabs ── */
+  .cat-tabs { display: flex; gap: 6px; padding: 10px 12px; overflow-x: auto; background: white; border-bottom: 1px solid var(--border); }
+  .cat-tabs::-webkit-scrollbar { display: none; }
+  .cat-tab { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 12px; border-radius: 10px; cursor: pointer; font-size: 0.7rem; color: var(--text-light); background: var(--bg); border: 1.5px solid transparent; transition: all 0.15s; }
+  .cat-tab .cat-icon { font-size: 1.3rem; }
+  .cat-tab .cat-name { font-size: 0.7rem; }
+  .cat-tab .cat-pct  { font-size: 0.68rem; font-weight: bold; margin-top: 1px; }
+  .cat-tab.active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); font-weight: bold; }
+
+  /* ── Progress Bar ── */
+  .progress-bar-wrap { padding: 10px 16px 6px; background: white; border-bottom: 1px solid var(--border); }
+  .progress-meta { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-light); margin-bottom: 5px; }
+  .progress-meta span:last-child { color: var(--primary); font-weight: bold; }
+  .progress-bar { height: 6px; background: #F0E0D0; border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--primary); border-radius: 3px; transition: width 0.4s ease; }
+
+  /* ── Items ── */
+  .items-list { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .item-card { background: white; border-radius: 14px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); overflow: hidden; }
+  .item-main { padding: 12px 14px; display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+  .item-num { flex-shrink: 0; width: 24px; height: 24px; background: var(--primary-light); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold; margin-top: 1px; }
+  .item-body { flex: 1; min-width: 0; }
+  .item-text { font-size: 0.9rem; line-height: 1.45; color: var(--text); }
+  .item-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+  /* なぜ大切ボタン：アコーディオン型 */
+  .why-btn { width: 100%; display: flex; justify-content: space-between; align-items: center; background: #FFF3EC; border: 1.5px solid #F5C9A8; border-radius: 8px; padding: 8px 12px; font-size: 0.8rem; color: var(--primary); font-weight: bold; cursor: pointer; margin-top: 6px; font-family: inherit; transition: background 0.15s; text-align: left; }
+  .why-btn:active { background: var(--primary-light); }
+  .why-btn.open { background: var(--primary-light); border-color: var(--primary); }
+  .why-chevron { font-size: 0.7rem; transition: transform 0.2s; flex-shrink: 0; margin-left: 8px; }
+  .why-btn.open .why-chevron { transform: rotate(180deg); }
+  .history-dots { display: flex; gap: 3px; }
+  .history-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--score-empty); transition: background 0.2s; }
+
+  /* ── Why Section ── */
+  .why-section { display: none; background: #FFF8F4; border-top: 1px solid var(--primary-light); padding: 10px 14px; }
+  .why-section.open { display: block; }
+  .why-title { font-size: 0.7rem; font-weight: bold; color: var(--primary); margin-bottom: 4px; }
+  .why-text { font-size: 0.82rem; color: #555; line-height: 1.55; }
+
+  /* ── Score Buttons ── */
+  .score-section { padding: 10px 14px 14px; border-top: 1px solid var(--border); }
+  .score-label { font-size: 0.7rem; color: var(--text-light); margin-bottom: 8px; }
+  .score-btns { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; }
+  .score-btn { padding: 8px 4px; border: 2px solid var(--border); border-radius: 10px; background: white; cursor: pointer; font-size: 0.75rem; text-align: center; font-family: inherit; transition: all 0.15s; line-height: 1.3; color: var(--text-light); }
+  .score-btn span { display: block; font-size: 0.65rem; margin-top: 2px; }
+  .score-btn.selected-1 { background: #FFEBEE; border-color: var(--score1); color: var(--score1); }
+  .score-btn.selected-2 { background: #FFF3E0; border-color: var(--score2); color: var(--score2); }
+  .score-btn.selected-3 { background: #F1F8E9; border-color: var(--score3); color: #558B2F; }
+  .score-btn.selected-4 { background: #E8F5E9; border-color: var(--score4); color: #2E7D32; }
+
+  /* ── アドバイス欄（通常） ── */
+  .advice-section { padding: 10px 14px; background: #E3F2FD; border-top: 1px solid #BBDEFB; }
+  .advice-title { font-size: 0.7rem; font-weight: bold; color: #1565C0; margin-bottom: 4px; }
+  .advice-text { font-size: 0.82rem; color: #333; line-height: 1.58; }
+  /* ── 退行アドバイス欄 ── */
+  .regression-section { padding: 10px 14px; background: #FFF3E0; border-top: 2px solid #FF9800; }
+  .regression-title { font-size: 0.7rem; font-weight: bold; color: #E65100; margin-bottom: 4px; }
+  .regression-text { font-size: 0.82rem; color: #444; line-height: 1.58; }
+
+  /* ── 完了バッジ（日付タブ） ── */
+  .date-tab.done { background: #E8F5E9; border-color: #4CAF50; color: #2E7D32; }
+  .date-tab.done .done-badge { display: block; font-size: 0.6rem; color: #4CAF50; line-height: 1; margin-top: 1px; }
+  .date-tab .done-badge { display: none; }
+
+  /* ── Prev Message ── */
+  .prev-msg { padding: 8px 14px; font-size: 0.8rem; line-height: 1.5; background: #FFF8E1; border-top: 1px solid #FFE082; color: #795548; }
+  .prev-msg.mastered { background: #F3E5F5; border-top-color: #CE93D8; color: #6A1B9A; }
+
+  /* ── Mastered ── */
+  .item-card.is-mastered { opacity: 0.82; }
+  .mastered-num { background: #E8F5E9 !important; color: var(--score4) !important; font-size: 0.85rem !important; }
+  .mastered-text { color: #888 !important; }
+  .mastered-badge { padding: 10px 14px 14px; font-size: 0.82rem; color: #7B1FA2; background: #F3E5F5; text-align: center; border-top: 1px solid #CE93D8; }
+
+  /* ── 感想欄 ── */
+  .comment-wrap { padding: 0 12px 16px; }
+  .comment-card { background: white; border-radius: 14px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); overflow: hidden; }
+  .comment-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px 6px; background: #EDE7F6; }
+  .comment-date-label { font-size: 0.8rem; font-weight: bold; color: #512DA8; }
+  .comment-status { font-size: 0.7rem; color: #9E9E9E; }
+  .comment-status.saved { color: #4CAF50; }
+  .comment-textarea { width: 100%; border: none; outline: none; resize: none; padding: 12px 14px; font-family: inherit; font-size: 0.88rem; line-height: 1.65; color: #333; background: white; }
+  .comment-textarea::placeholder { color: #C5B8D8; }
+
+  /* ── Graduation Screen ── */
+  #graduation-screen { background: linear-gradient(160deg, #FFF0F5 0%, #FDE8D8 50%, #FFF8E1 100%); min-height: 100vh; padding: 0 0 40px; overflow-y: auto; }
+  .grad-hero { text-align: center; padding: 36px 20px 24px; }
+  .grad-flowers { font-size: 2.2rem; letter-spacing: 4px; margin-bottom: 10px; animation: floatFlower 3s ease-in-out infinite; }
+  @keyframes floatFlower { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+  .grad-title { font-size: 1.15rem; font-weight: bold; color: #C4561E; margin-bottom: 6px; }
+  .grad-child { font-size: 1.7rem; font-weight: bold; color: #333; margin-bottom: 4px; }
+  .grad-subtitle { font-size: 0.9rem; color: #888; margin-bottom: 4px; }
+  .grad-year { font-size: 0.8rem; color: #aaa; }
+
+  .grad-section { background: white; border-radius: 16px; margin: 0 14px 12px; padding: 18px 18px 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.07); }
+  .grad-section-title { font-size: 0.8rem; font-weight: bold; color: var(--primary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .grad-overall { display: flex; align-items: center; gap: 16px; }
+  .grad-circle { flex-shrink: 0; width: 80px; height: 80px; border-radius: 50%; background: conic-gradient(var(--primary) var(--pct), #F0E0D0 0); display: flex; align-items: center; justify-content: center; position: relative; }
+  .grad-circle::before { content: ''; position: absolute; width: 60px; height: 60px; background: white; border-radius: 50%; }
+  .grad-circle-num { position: relative; z-index: 1; font-size: 1.05rem; font-weight: bold; color: var(--primary); }
+  .grad-overall-text { flex: 1; }
+  .grad-overall-big { font-size: 1.1rem; font-weight: bold; color: #333; margin-bottom: 3px; }
+  .grad-overall-sub { font-size: 0.8rem; color: #888; }
+
+  .grad-cat-row { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+  .grad-cat-icon { font-size: 1.1rem; width: 24px; text-align: center; }
+  .grad-cat-name { font-size: 0.8rem; color: #555; width: 60px; flex-shrink: 0; }
+  .grad-cat-bar-wrap { flex: 1; height: 10px; background: #F0E0D0; border-radius: 5px; overflow: hidden; }
+  .grad-cat-bar { height: 100%; border-radius: 5px; transition: width 1s ease; }
+  .grad-cat-pct { font-size: 0.75rem; color: #888; width: 34px; text-align: right; flex-shrink: 0; }
+
+  .grad-message-text { font-size: 0.88rem; line-height: 1.7; color: #444; margin-bottom: 12px; }
+  .grad-advice-item { background: #FFF8F4; border-left: 3px solid var(--primary); border-radius: 0 8px 8px 0; padding: 9px 12px; margin-bottom: 8px; font-size: 0.83rem; line-height: 1.6; color: #555; }
+  .grad-advice-item strong { color: var(--primary); display: block; margin-bottom: 2px; font-size: 0.8rem; }
+
+  .grad-footer { text-align: center; padding: 10px 20px 0; }
+  .grad-footer-msg { font-size: 0.85rem; color: #888; line-height: 1.6; margin-bottom: 8px; }
+  .grad-footer-sign { font-size: 0.8rem; color: #bbb; }
+
+  /* ── Toast ── */
+  .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: #333; color: white; padding: 10px 20px; border-radius: 20px; font-size: 0.85rem; opacity: 0; transition: all 0.3s; pointer-events: none; white-space: nowrap; z-index: 999; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- ── Loading ── -->
+<div id="loading-screen">
+  <div class="loading-logo">🌸</div>
+  <div class="loading-text">読み込み中...</div>
+  <div class="spinner"></div>
+</div>
+
+<!-- ── Registration ── -->
+<div id="reg-screen" class="screen">
+  <div class="reg-logo">🌸</div>
+  <div class="reg-title">梅乃園幼稚園</div>
+  <div class="reg-sub">小梅クラス 成長チェックアプリ</div>
+  <div class="reg-card">
+    <h2>お子様の情報を登録してください</h2>
+    <div class="form-group">
+      <label>お子様のお名前（漢字）</label>
+      <input type="text" id="child-name" placeholder="例：山田 太郎" />
+    </div>
+    <div class="form-group">
+      <label>よみがな</label>
+      <input type="text" id="child-kana" placeholder="例：やまだ たろう" />
+    </div>
+    <div class="form-group">
+      <label>クラス</label>
+      <div class="class-btns">
+        <button class="class-btn" id="btn-aka" onclick="selectClass('赤小梅')">🔴 赤小梅</button>
+        <button class="class-btn" id="btn-shiro" onclick="selectClass('白小梅')">⚪ 白小梅</button>
+      </div>
+      <input type="hidden" id="child-class" value="" />
+    </div>
+    <button class="btn-primary" onclick="submitRegistration()">登録して始める →</button>
+  </div>
+</div>
+
+<!-- ── Main App ── -->
+<div id="main-screen" class="screen">
+  <div class="app-header">
+    <div class="header-left">
+      <div class="header-logo">🌸</div>
+      <div class="header-info">
+        <div class="header-name" id="header-name">読み込み中...</div>
+        <div class="header-class" id="header-class">梅乃園 小梅クラス</div>
+      </div>
+    </div>
+    <button class="btn-edit" onclick="showReg()">名前変更</button>
+  </div>
+
+  <div class="date-selector">
+    <div class="date-label">📅 チェックする日を選んでください</div>
+    <div class="date-tabs" id="date-tabs"></div>
+  </div>
+
+  <div class="cat-tabs" id="cat-tabs"></div>
+
+  <div class="progress-bar-wrap">
+    <div class="progress-meta">
+      <span id="progress-label">進捗</span>
+      <span id="progress-pct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="items-list" id="items-list"></div>
+
+  <!-- ── 感想欄 ── -->
+  <div class="comment-wrap">
+    <div class="comment-card">
+      <div class="comment-header">
+        <span class="comment-date-label" id="comment-date-label">📝 5/6 の子育て感想</span>
+        <span class="comment-status" id="comment-status"></span>
+      </div>
+      <textarea
+        id="comment-textarea"
+        class="comment-textarea"
+        rows="4"
+        placeholder="この時期のお子様の様子、気づいたこと、うれしかったこと、心配なことなど自由に記入してください。"
+        oninput="onCommentInput(this.value)"
+      ></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ── Graduation Screen ── -->
+<div id="graduation-screen" class="screen">
+  <div class="grad-hero">
+    <div class="grad-flowers">🌸🌸🌸</div>
+    <div class="grad-title">1年間ありがとうございました</div>
+    <div class="grad-child" id="grad-child-name"></div>
+    <div class="grad-subtitle">年少クラスへの進級、おめでとうございます！</div>
+    <div class="grad-year" id="grad-year"></div>
+  </div>
+
+  <div class="grad-section">
+    <div class="grad-section-title">📊 1年間の達成度</div>
+    <div class="grad-overall">
+      <div class="grad-circle" id="grad-circle">
+        <span class="grad-circle-num" id="grad-circle-num">--%</span>
+      </div>
+      <div class="grad-overall-text">
+        <div class="grad-overall-big" id="grad-overall-big"></div>
+        <div class="grad-overall-sub" id="grad-overall-sub"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grad-section">
+    <div class="grad-section-title">📈 カテゴリ別達成度</div>
+    <div id="grad-cat-bars"></div>
+  </div>
+
+  <div class="grad-section">
+    <div class="grad-section-title">✉️ 保護者の皆様へ</div>
+    <div class="grad-message-text" id="grad-main-msg"></div>
+    <div id="grad-advice-list"></div>
+  </div>
+
+  <div class="grad-footer">
+    <div class="grad-footer-msg" id="grad-footer-msg"></div>
+    <div class="grad-footer-sign">梅乃園幼稚園</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// =============================================
+// データ定義
+// =============================================
+const CHECK_DATES  = ['5/6', '7/20', '8/30', '1/9', '2/28'];
+const CHECK_MONTHS = ['5月', '7月', '8月', '1月', '2月'];
+
+// 前回スコアへのメッセージ
+const PREV_MESSAGES = {
+  1: { icon: '🌱', text: '前回はまだこれからでしたね。毎日の積み重ねが大切です。一緒に取り組んでみましょう！' },
+  2: { icon: '📈', text: '前回よりできてきていますよ！少しずつ上達しています。この調子で続けましょう 💪' },
+  3: { icon: '✨', text: 'もうすぐ「できる」になりそうです！よく頑張っています。あと一息です！' },
+  4: { icon: '🌸', text: '前回「できる」になりました！すばらしいです。しっかり定着していますね 🎉' },
+};
+
+const CATEGORIES = [
+  {
+    id: 'kotoba', name: '言葉', icon: '🗣️',
+    items: [
+      { text: '名前を呼ばれたら、どんな時でも呼んだ人の顔を見て「ハイ」と返事ができる', why: '返事は人間関係の最初の一歩です。集団生活で先生や友達の呼びかけに応答できないと指示が届かず孤立しやすくなります。2歳のうちに習慣化することで、幼稚園・小学校での集団適応がスムーズになります。' },
+      { text: '子供に対して大人が「ワンワン」等の幼児語を使わない', why: '子供は大人の言葉をそのまま真似して言語を習得します。大人が正しい言葉を使うことで、語彙・発音が正確に育ちます。幼児語を使い続けると語彙発達が遅れ、小学校入学時の読み書きに影響します。' },
+      { text: '子供自身が「ワンワン」等の幼児語を使わない', why: '正確な語彙の習得が読み書きの土台になります。正しい言葉を使う習慣がつくと語彙力・表現力の発達が加速し、会話での自己表現が豊かになります。' },
+      { text: '子供が幼児語を使ったら、大人が正しい言い方で言い直す', why: '叱るのではなく自然に手本を見せることが最も効果的な言語矯正法です。「ワンワンだね、そう、犬だね」と繰り返すだけで、子供は正しい言葉に気づいていきます。' },
+      { text: 'TV・スマホ等の映像を見せない（1日30分以内はOK）', why: '画面からの言葉は一方向で、子供の返答を待ちません。人との双方向の会話こそが言語発達を促します。スクリーンタイムが長いほど語彙発達が遅れるという研究結果があります。' },
+      { text: '絵本を毎日2冊以上読み聞かせる', why: '絵本の読み聞かせは語彙・文章構造・想像力・集中力を同時に育てます。小1の読み書き能力との相関が最も高い幼児期の習慣です。親の声を通じた言葉の体験が記憶に深く残ります。' },
+      { text: '絵や実物を見て、日本語で乗り物の名前を5こ以上言える', why: '語彙量が思考力に直結します。カテゴリ別に言葉を覚えることで「分類・整理する思考」も同時に育ちます。身の回りの物に名前をつけて話しかける習慣が重要です。' },
+      { text: '絵や実物を見て、日本語で野菜の名前を5こ以上言える', why: '食材の名前を知ることで、食への興味・好き嫌いの改善にもつながります。買い物に一緒に行き「これは何？」と話しかけるだけで語彙が広がります。' },
+      { text: '絵や実物を見て、日本語で果物の名前を5こ以上言える', why: '具体的なものに名前をつける語彙力が、後の概念理解や読書理解の土台になります。季節の果物を実物で教えると記憶に定着しやすくなります。' },
+      { text: '絵や実物を見て、日本語で動物の名前を5こ以上言える', why: '動物の名前は子供が最も興味を持ちやすいカテゴリです。語彙が増えると「もっと知りたい」という知的好奇心が生まれ、学ぶ姿勢の原点になります。' },
+      { text: '絵や実物を見て、日本語で色の名前を5こ以上言える', why: '色の概念理解は空間認識・美術・理科の学習に繋がります。日常の中で「赤いリンゴだね」「青いお空だね」と色を言葉にして話しかけることで自然に習得できます。' },
+      { text: '童謡を1番以上、1人で歌える曲がある', why: 'リズム感・発声・記憶力・言語のリズム感が同時に育ちます。歌える曲数は語彙力と記憶力の指標でもあります。声を出して笑うことは発声・呼吸の訓練にもなります。' },
+      { text: '自分から「おはようございます」が言える', why: '「自分から」が肝心です。言われてから言えるのは指示への従順さですが、自分から言えるのは社会性・自己肯定感の表れです。挨拶ができる子は友達関係・先生との関係が良好になります。' },
+      { text: '自分から「いただきます」が言える', why: '食事の挨拶は感謝の気持ちの表現です。食への感謝が育つと好き嫌いが減りやすく、食事マナー全般の習得が早くなります。' },
+      { text: '自分から「ごちそうさま」が言える', why: '食事を終える区切りの言葉を自分で言えることで、食事時間の自己管理が身につきます。「終わり」の区切りをつける習慣が、後の学習場面でも「切り替え力」として活きます。' },
+      { text: '自分から「ありがとう」が言える', why: '感謝を自発的に表現できる子は他者との関係が良好です。感謝の習慣は自己肯定感と共感能力の発達と深く関わっています。' },
+      { text: '自分から「ごめんなさい」が言える', why: '自分の行動の結果を認識して謝れる能力は、道徳性・共感性の発達指標です。2〜3歳に習慣化すると集団生活でのトラブルが大幅に減ります。' },
+      { text: '自分から「やって下さい」が言える', why: '助けを求める言葉を正確に使えることが自立の一歩です。泣いたり怒ったりではなく言葉で伝えられると、友達・先生との関係が良くなります。' },
+    ]
+  },
+  {
+    id: 'seikatsu', name: '行動生活', icon: '👕',
+    items: [
+      { text: '靴が一人で脱げる', why: '「自分でできた！」という小さな達成感が自信を育てます。自立の第一歩が学ぶ意欲の源です。最初は難しくても毎日挑戦させることが大切です。' },
+      { text: '靴が一人で履ける', why: '靴を履く動作は指先・手首・足首を複合的に使う高度なスキルです。一人でできると登園時のスムーズな移行に直結し、自信につながります。' },
+      { text: '靴下が一人で脱げる', why: '衣服の着脱は自立の基本。できることが増えるたびに「自分でやろうとする意欲」が育ちます。' },
+      { text: '靴下が一人で履ける', why: '靴下を履く動作はバランス感覚と指先の巧緻性を同時に鍛えます。毎朝の習慣として取り組むことが大切です。' },
+      { text: '一人でタオルがたためる', why: 'たたむことは集中力・几帳面さ・空間認識能力の訓練です。整理整頓の習慣は後の学習環境の整え方にも影響します。' },
+      { text: '一人でスモックを着ることができる', why: '衣服の着脱自立は幼稚園・小学校生活の基本です。一人でできると登降園の準備時間が短縮され、自己効力感が高まります。' },
+      { text: '一人でスモックを脱ぐことができる', why: '着ることと脱ぐことは別の動作です。両方できて初めて「完全な自立」です。できない場合は焦らず手順を一緒に確認しましょう。' },
+      { text: '裏返しになったスモックを元に戻せる', why: '裏返しを直す作業は空間認識能力と問題解決力の訓練です。「これはどうすればいいかな？」と考えさせることで思考力も育ちます。' },
+      { text: '一人でスモックがたためる', why: 'たたむ工程を理解し実行できることは、複数の手順を記憶・実行する「実行機能」の発達指標です。' },
+      { text: 'クレヨンを正しく持つことができる（にぎり持ちは×）', why: '2歳での持ち方習慣が小学校の鉛筆の持ち方に直結します。にぎり持ちで固定されると正しい持ち方への矯正が難しくなります。今が習慣化の最重要時期です。' },
+      { text: 'クレヨンを持って一人で直線が描ける', why: '直線を描けることは手と目の協調（目と手の協調運動）の第一歩です。この能力が文字を書く基礎になります。' },
+      { text: 'クレヨンを持って一人で丸が描ける', why: '丸が描けると「○」という文字記号の概念が理解できます。丸・三角・四角は図形認識の基礎であり、算数・理科の学習に繋がります。' },
+      { text: 'クレヨンを持って一人で三角が描ける', why: '三角を描くには「方向転換」の制御が必要です。鉛筆操作の複雑さへの対応力が育ちます。' },
+      { text: 'クレヨンを持って一人で四角が描ける', why: '四角は「直角・平行」の概念の入り口です。形を正確に描こうとする姿勢が几帳面さ・丁寧さを育てます。' },
+      { text: 'クレヨンを持って一人で顔らしきものが描ける', why: '顔を描けることは自己表現能力と観察力の発達指標です。目・鼻・口という要素を「顔」として認識して描けることは認知発達の重要なマイルストーンです。' },
+      { text: '簡単な塗り絵ができる', why: '枠の中に塗る動作は手の制御力と集中力を鍛えます。雑に塗るのではなく丁寧に塗ろうとする意識が、細やかさ・忍耐力につながります。' },
+      { text: 'パンツを足首まで一人で下ろせる', why: 'トイレ動作の自立に直結します。一人でできないとトイレを嫌がったり、間に合わないリスクが増します。' },
+      { text: 'パンツをお尻が隠れるまで一人で上げられる', why: '上げる動作は下ろすより難しく、体のバランスと手の器用さが必要です。完全に一人でできることが衛生的な自立の証です。' },
+      { text: 'トイレの後は一人で水を流せる', why: '「使ったら片付ける」という責任感の最初の習慣です。集団生活でのマナーの基本であり、他者への配慮の入り口になります。' },
+      { text: 'トイレで排便ができる', why: 'トイレでの排便自立は集団生活における最重要スキルの一つです。幼稚園で困らないために、家庭でのトイレ習慣の確立が欠かせません。' },
+      { text: 'お尻を一人で拭ける（大）', why: '清潔習慣の自立は健康管理の基本です。完全に一人でできると感染症予防にもなります。最初は拭いてあげた後に「自分でやってみよう」と少しずつ移行しましょう。' },
+      { text: '女の子はトイレットペーパーを適量切って一人で拭ける（小）', why: '「適量」を判断することは自己管理能力の訓練です。多すぎず少なすぎずの感覚は日常の様々な「加減」の学習につながります。' },
+      { text: '男の子はトイレで立っておしっこができる', why: '幼稚園での男子トイレ使用に必須のスキルです。家庭での練習が集団生活への適応をスムーズにします。' },
+      { text: 'トイレの後、必ず手を洗う', why: '感染症予防の最重要習慣です。「必ず」がポイントで、毎回の習慣化が保育園・幼稚園・小学校での健康維持に直結します。' },
+      { text: '蛇口をひねって水を一人で出したり止めたりできる', why: '手の操作能力（手首の回転）の発達指標です。水の使い方を自分でコントロールする習慣が資源への意識にもなります。' },
+      { text: '手を石けんできれいに洗って流せる（一人で。手伝い不可）', why: '石けんで洗う・すすぐ・止めるという複数の手順を一人で完結できることが自立の証です。正しい手洗いが習慣化すると感染症にかかりにくくなります。' },
+      { text: '手をハンカチやタオルで拭ける（一人で。手伝い不可）', why: '濡れたままにせず拭く習慣が清潔意識の基本です。ハンカチを自分で使えると幼稚園でも清潔に過ごせます。' },
+      { text: 'うがいができる', why: 'うがいは喉の粘膜への刺激を洗い流す感染症予防の習慣です。口の中を水で動かすコントロールは口腔機能の発達にもつながります。' },
+      { text: '毎朝顔を洗う又は洗ってあげる（濡れタオルで拭くのは×）', why: '朝の清潔習慣が一日のリズムを作ります。顔を洗う刺激は覚醒にもなり、幼稚園での活動への切り替えを助けます。' },
+      { text: '毎日お風呂に入る', why: '清潔習慣と睡眠前のルーティンの確立です。入浴後の体温低下が深い眠りを促し、成長ホルモンの分泌を助けます。規則正しい生活リズムが脳の発達に直結します。' },
+      { text: '毎日石鹸やシャンプーで頭と体を洗う（又は洗ってあげる）', why: '皮膚の清潔が健康の基本です。毎日の習慣として定着させることが重要で、感染症・皮膚トラブルの予防につながります。' },
+      { text: '汗をかいたら、ハンカチやタオルで汗を一人で拭ける', why: '自分の体の状態に気づき対処する「身体管理能力」の入り口です。不快感を自分で解消できると、集中力が維持されます。' },
+      { text: '紅白帽子を一人でゴム紐を顎に掛けて被れる', why: '帽子の着用が習慣化すると熱中症・日焼けの予防になります。ゴム紐を顎にかける動作は細かい手指操作の訓練です。' },
+      { text: '話を聞く時は相手の顔を見ることができる', why: '目を見て聞くことはコミュニケーションの基本中の基本です。この習慣がある子は先生の話を正確に理解でき、授業への参加度が格段に上がります。' },
+      { text: '洋服・下着（上下）を一人で前後間違えずに着られる', why: '前後を判断して着られることは空間認識と自己管理の統合です。「前後間違えずに」というレベルへの到達が自立の完成形です。' },
+      { text: '洋服・下着（上下）を一人で裏返しにならずに脱げる', why: '裏返しにならずに脱げると次に着る時が楽になります。自分の行動が次の行動を助けるという「見通す力」の訓練です。' },
+      { text: '尿意を感じ、自分からトイレに行ける', why: '自分の体の信号に気づき行動できることは、自己管理能力の核心です。「言われてから」ではなく「自分から」が集団生活での自立の証です。' },
+      { text: '毎朝、排便をする', why: '朝の排便習慣が腸の健康と精神的な安定を作ります。腸は「第二の脳」とも言われ、腸内環境が気分・集中力に影響します。' },
+      { text: '自分で歯を磨き、その後に大人が仕上げ磨きをしている', why: '虫歯予防だけでなく「自分でやった後に確認を受ける」という習慣が、自主性と他者確認の両立を育てます。' },
+      { text: '鼻水が出たら、一人でかむことができる', why: '鼻水を放置すると中耳炎・副鼻腔炎のリスクが上がります。自分で気づいてかめることが健康管理の自立の第一歩です。' },
+    ]
+  },
+  {
+    id: 'shokuji', name: '食事', icon: '🍽️',
+    items: [
+      { text: '食べ終わるまでずっと座っている（途中で立ち歩かない）', why: '座って食べる集中力が学習時の集中力に直結します。食事中に立ち歩く習慣がつくと、授業中も席に座り続けることが難しくなります。' },
+      { text: '座っている間、足がイスの上にあがらない', why: '正しい姿勢で食べることが消化を助け、食事への集中力を高めます。姿勢の習慣は体幹の発達と直接関係します。' },
+      { text: '食事中はテレビをつけない', why: 'テレビをつけると食事への意識が分散します。食べることに集中する習慣が食の感謝・マナーを育てます。消化にも良い影響があります。' },
+      { text: 'だいたい食事の時間を決めて食べている（40分が目安）', why: '決まった時間に食べる習慣が体内時計を整え、睡眠リズム・活動リズムを安定させます。規則正しい生活が脳の発達に直接影響します。' },
+      { text: '幼稚園で使っているお箸箱が一人で開けられる', why: '日常の小道具を自分で扱える能力が自立心を育てます。「自分で準備する」という行動の積み重ねが責任感になります。' },
+      { text: '一人でスプーン・フォークをきちんとお箸箱に入れ、閉めることができる', why: '使った道具を元に戻す習慣が整理整頓能力の基礎です。「後片付けは自分でする」というマナーが集団生活で重要です。' },
+      { text: '一人でスプーンやフォークをお箸持ちで持てる（にぎり持ちは×）', why: 'スプーン・フォークのお箸持ちが、箸への移行を大幅に早めます。今のうちに正しいグリップを習慣化することが、お箸を使う力の最短ルートです。' },
+      { text: '一人でご飯をスプーンですくって食べることができる', why: 'すくう動作は手首の細かい制御力を育てます。こぼさずすくえることへの達成感が食への自信になります。' },
+      { text: 'スプーンとフォークを使い分けて食べることができる', why: '食材によって道具を使い分ける判断力が育ちます。この「状況に応じた選択」が汎用的な問題解決思考の基礎になります。' },
+      { text: '反対の手でお皿等をおさえて食べることができる', why: '両手を協調させる動作は脳の発達を促します。左右の手を別々の動きで使えることが、後の書字・楽器演奏などにも関わります。' },
+      { text: '食べた食器を何個か流し台まで運べる', why: '「使ったものは片付ける」という責任感の習慣化です。家族の一員としての貢献感が自己肯定感を育てます。' },
+      { text: '幼稚園のお給食セットを一人で袋から出して用意できる', why: '自分の準備を自分でする習慣が自立心を育てます。幼稚園でスムーズに給食の準備ができると、友達との関わり時間が増えます。' },
+      { text: '幼稚園のお給食セットを一人で袋にしまえる', why: '複数の道具を袋にしまう作業は手順を覚えて実行する「ワーキングメモリ」の訓練です。' },
+      { text: 'ランチョンマットをたたむことができる', why: 'たたむ工程を覚えて実行する力は、複雑な手順の習得能力（学習能力）の基礎です。' },
+      { text: 'たたんだランチョンマットを袋にしまえる', why: '一連の片付け動作を最後まで完結させる習慣が「やり遂げる力」を育てます。' },
+      { text: '親が子供の好き嫌いをなくすように料理を工夫している', why: '食べ物の好き嫌いの数だけ人の好き嫌いがあると言われます。食への柔軟性が人や経験への柔軟性につながります。嫌いなものを「一口だけ」から始める工夫が大切です。' },
+      { text: '一人でこぼさずに食べられる', why: 'こぼさず食べる制御力は手と口の協調運動の高度な発達を示します。焦らせず、達成できた時にたくさん褒めることが上達を促します。' },
+      { text: '嫌いな物も頑張って食べる', why: '苦手なものに挑戦する姿勢が、学習・運動・社会生活すべての場面での「チャレンジ精神」の原型になります。一口でも挑戦した事実を大げさなくらい褒めましょう。' },
+    ]
+  },
+  {
+    id: 'rikai', name: '理解', icon: '💡',
+    items: [
+      { text: '「男の子、女の子どっち？」と聞いた時に、自分で答えられる', why: '自己認識の第一歩です。自分が何者かを言葉で表現できることがアイデンティティの発達指標です。' },
+      { text: '鬼ごっこで逃げることができる', why: 'ルールを理解して役割を果たせることは社会性の基礎です。「逃げる」という役割に集中できることが集団遊びへの参加力につながります。' },
+      { text: '鬼ごっこで捕まえることができる', why: '「鬼」という役割の責任を理解して行動できることが、役割分担・リーダーシップの原型です。' },
+      { text: '1〜10まで数えている間、目を合わせて見つめ合える', why: '目を合わせる力は集中力とコミュニケーション能力の基礎です。数える間ずっと視線を保てることが注意持続力の発達指標です。' },
+      { text: '1〜10まで数を数えられる', why: '数概念の習得は算数の土台です。ただし「言えるだけ」と「理解して数えている」は違います。次の項目と合わせて確認しましょう。' },
+      { text: '1〜10まで数を数えながら手を叩ける（口と手が合っているか）', why: '口と手が合うかどうかが「理解して数えているか」のチェックポイントです。合わない場合は数の概念がまだ定着していないサインです。' },
+      { text: '靴を左右間違えずに履ける', why: '左右の空間認識は文字の向き（「b」と「d」など）の区別や、文章を左から右へ読む能力にも関わります。早期の習慣化が有効です。' },
+      { text: '自分の名前をフルネームで言うことができる', why: '自分の名前を言えることはアイデンティティの基本です。フルネームで言えると集団生活での自己紹介がスムーズになります。' },
+      { text: '自分の名前の漢字（フルネーム）を見て、自分だとわかる', why: '自分の名前の文字を認識できることが文字学習への興味の入り口になります。名前の文字は最も動機づけが高い学習材料です。' },
+      { text: '右手・左手がわかる', why: '左右の概念は方向・順序・文字の向きなど多くの学習概念に関わります。「右手でご飯を食べる手」などの生活に結びつけた教え方が効果的です。' },
+      { text: '青信号で渡ることができる', why: '交通ルールは命に関わるスキルです。「青で渡る」という単純なルールを確実に習慣化することが自立した行動の第一歩です。' },
+      { text: '赤信号で止まることができる', why: 'ルールを守ることと危険を認識することの両方が育ちます。衝動を抑えて止まれる力（抑制制御）は学習能力の重要な要素です。' },
+      { text: '誰にでも「貸して」が言える', why: '欲しいものを言葉で伝えられると、押したり取ったりするトラブルが激減します。社会的なコミュニケーション能力の核心的なスキルです。' },
+      { text: '「貸して」と言われたら「いいよ」と渡すことができる', why: '他者の気持ちに応答できることが共感能力の実践です。友達関係の良し悪しを決める最も重要なスキルの一つです。' },
+      { text: '他の子が持っているおもちゃを勝手に取らない', why: '衝動を制御して他者の所有権を尊重できる能力は、道徳性発達の重要指標です。小学校入学後のトラブルを大幅に減らします。' },
+      { text: '突然押したり叩いたりしない', why: '衝動制御（実行機能）の発達指標です。言葉で伝える習慣がつくと体での表現が自然に減ります。できた時は必ず具体的に褒めましょう。' },
+      { text: '「じゃんけんぽん」でグーチョキパーのどれか一つを出すことができる', why: 'ルール理解・指先の操作・勝敗の受け入れが同時に育ちます。じゃんけんはあらゆる集団遊びの基本ルールです。' },
+      { text: 'じゃんけんの勝ち負けがわかる', why: '勝ち負けの理解と受け入れが感情制御の訓練になります。負けても次へ切り替えられる力が、挑戦し続ける力の源です。' },
+      { text: '「後で」と言われたら待つことができる', why: '待てる力（衝動制御）は学力予測の最も重要な指標の一つです。「マシュマロ実験」でも示されたように、待てる子は将来の様々な能力が高い傾向があります。' },
+      { text: '「○○を持ってきて」と伝えると持って来ることができる（例：新聞、ティッシュ等）', why: '指示を理解して行動できることが授業理解の基礎です。物の名前と場所を結びつけて動ける力は語彙力と空間認識の組み合わせです。' },
+      { text: 'お手伝いができる（例：植木に水をあげる、食器を並べる）', why: '家族の一員として役立てる体験が自己肯定感を高めます。お手伝いを通じて責任感・達成感・感謝される喜びが育ちます。' },
+      { text: '言われた単語を一つ真似して言える（例：うさぎ等）', why: '言葉の模倣能力は言語習得の根本です。一語を正確に繰り返せることが語彙拡張の基礎になります。' },
+      { text: '言われた単語を二つ連続して真似して言える（例：くつ、りんご等）', why: '二語の記憶はワーキングメモリの発達指標です。これができると「○○してから△△してください」という二段階指示が理解できるようになります。' },
+      { text: '言われた単語を三つ以上連続して真似して言える（例：犬、猫、あり等）', why: '三語以上の記憶ができると授業での複数の指示を正確に理解できます。このワーキングメモリの発達が小学校での学習成功と強く相関しています。' },
+    ]
+  },
+  {
+    id: 'undo', name: '運動', icon: '🏃',
+    items: [
+      { text: '手を腰にして両足ジャンプができる', why: 'ジャンプは全身の筋力・バランス感覚・タイミング感覚を同時に使います。体幹の発達が脳への刺激にもなり、学習意欲や集中力に良い影響を与えます。' },
+      { text: '平坦な道を転ばず走れる', why: 'バランスを保ちながら走れることは全身協調運動の基礎です。転ばずに走れると活動範囲が広がり、友達との遊びに積極的に参加できます。' },
+      { text: '平坦な道を50m以上休まず走れる', why: '持久力は意欲・粘り強さの身体的表れです。走り続ける体験が「最後まであきらめない力」の原型を作ります。' },
+      { text: '鉄棒に一人で10秒ぶら下がれる', why: '上半身の筋力・握力・体幹を同時に鍛えます。10秒間耐える経験が「我慢する力」の身体的訓練にもなります。' },
+      { text: 'すべり台を一人で上って一人で滑れる', why: '高さへの挑戦・待つ・滑るという一連の流れが勇気・順番待ち・達成感を育てます。一人でできると自信が大きく膨らみます。' },
+      { text: '片足で3秒以上立つことができる（右足を上げる）', why: '片足立ちはバランス感覚・体幹・集中力の総合指標です。転倒予防にもなり、スポーツ・体育での土台になります。' },
+      { text: '片足で3秒以上立つことができる（左足を上げる）', why: '左右両方でできることが重要です。左右のバランスの偏りが姿勢や運動能力に影響するため、両側を確認しましょう。' },
+      { text: '階段を一段ずつ左右の足で交互に上がれる', why: '交互に足を出せることは左右の協調運動の発達指標です。これができると活動範囲が広がり、公園・建物の探索が自由になります。' },
+      { text: '階段を一段ずつ左右の足で交互に下がれる', why: '降りる動作は上りより難しく、重心移動とバランス制御が必要です。怖がらずに下りられると行動の自由度が大幅に上がります。' },
+      { text: '仰向けに寝てまっすぐ両足を上げられる', why: '腹筋・体幹の強さの指標です。体幹が弱いと姿勢が崩れやすく、座って作業する際の集中力にも影響します。' },
+      { text: '長座で前屈ができる（おでことひざをくっつける）', why: '柔軟性は怪我の予防と全身の血流改善につながります。硬い体は緊張しやすく、心の硬さとも関連するとも言われます。' },
+      { text: '右手の指で1〜5が作れる', why: '指を一本ずつ独立して動かせることが細かい手作業の基礎です。この能力が直接「書く力」と結びつきます。' },
+      { text: '左手の指で1〜5が作れる', why: '利き手でない方の指の制御も重要です。両手の指を使いこなせると、道具を使う際の補助手として機能します。' },
+      { text: '両手の指で1〜5が作れる', why: '両手同時に異なる動きができることは脳の左右半球の協調を示します。この能力が文字を書きながらノートを押さえる等の複合作業につながります。' },
+      { text: '片手でグーチョキパーが作れる', why: 'グーチョキパーの切り替えは指先の巧緻性と脳の指令の正確さの指標です。鉛筆を持って書く動作への準備段階として重要です。' },
+      { text: '両手でグーチョキパーが作れる', why: '両手で同時にグーチョキパーができることは左右脳の協調の高度な発達を示します。じゃんけんだけでなく多くの手作業の基礎になります。' },
+      { text: '正座（園では"お客様座り"と言います）ができる', why: '集会・発表会・式典での姿勢の基本です。正座ができると集中して話を聞く姿勢が自然にとれるようになります。' },
+      { text: '体操座り（園では"おりんごさん"と言います）ができる', why: '体操座りは授業・朝礼・集会の基本姿勢です。安定した体操座りができると長時間の集団活動に参加しやすくなります。' },
+      { text: 'お父さんが休みの日は一緒に遊ぶ', why: 'お父さんならではのダイナミックな遊びはバランス感覚を養い、脳に良い刺激を与えます。「キャッキャッ」と声を出して笑う体験が、言葉の習得に必要な発声・呼吸の訓練にもなります。' },
+    ]
+  }
+];
+
+// =============================================
+// アドバイス（スコア1・2の項目に表示するコツ）
+// =============================================
+const ADVICE = {
+  kotoba: [
+    '食事・遊び・着替えなど毎日の場面で名前を呼んで返事を促しましょう。目が合ったら必ず褒めることが習慣化の近道です。',
+    'まず1日だけ、親御さん自身が幼児語をまったく使わない日を作ってみましょう。意識するだけで大きく変わります。',
+    '幼児語が出たら叱らず「そうだね、犬だね」と自然に正しい言葉を添えて聞かせましょう。',
+    '幼児語を使った直後にすぐ「〇〇だよ」と優しく添える習慣を繰り返しましょう。',
+    'まず夕食中だけテレビを消す習慣から始めましょう。その分、食卓の会話が自然に増えます。',
+    '寝る前の10分を絵本タイムに固定しましょう。同じ本を繰り返し読むのも語彙定着に効果的です。',
+    'お散歩中に見かけた乗り物を一緒に声に出して言いましょう。「バスだ！」の積み重ねが語彙になります。',
+    '買い物に一緒に行き、野菜売り場で「これは何だろう？」と問いかけましょう。実物で教えると記憶に残ります。',
+    'おやつの時間に「これ何ていう果物？」と毎日少しずつ教えましょう。絵本や図鑑でも楽しく学べます。',
+    '動物の絵本を一緒に見て、指差しながら名前を教えましょう。鳴き声の真似をすると楽しく覚えられます。',
+    '日常で色を言葉にしましょう。「赤いリンゴだね」「青いお空だね」と声に出すだけで自然に覚えます。',
+    '朝の支度中や車の中でCDをかけ、一緒に口ずさみましょう。同じ歌を繰り返し聴かせることが大切です。',
+    '毎朝、親御さんが先に「おはようございます！」と明るく言いましょう。真似したくなる雰囲気が大切です。',
+    '食事前に手を合わせて「いただきます」を一緒に言う習慣を繰り返しましょう。',
+    '食べ終わった後、椅子に座ったまま一緒に「ごちそうさまでした」と言う区切りを作りましょう。',
+    '何かしてあげた時に「ありがとうって言えるかな？」と優しく促し、言えたら大げさに喜びましょう。',
+    '失敗した時に「ごめんなさいって言ってみようか」と穏やかに促し、言えたら「えらいね」と認めましょう。',
+    '助けが必要な時に泣く前に「やって、って言ってみよう」と教えましょう。言えたらすぐ応えてあげてください。',
+  ],
+  seikatsu: [
+    '玄関で毎日一緒に脱ぐ練習を。かかとを踏まないよう手を添えて教えてあげてください。',
+    '靴のかかとに指を入れて引っ張る感覚を教えましょう。毎朝5分早起きして練習時間を作るのがコツです。',
+    '靴下の口を両手でつかんで引っ張る動作を一緒にやりましょう。お風呂前の脱衣所が練習のチャンスです。',
+    'つま先から丁寧に入れる感覚を教えましょう。最初は大きめの靴下で練習すると成功しやすくなります。',
+    '半分・また半分という折り方を一緒にやって見せましょう。洗濯物をたたむ時間に一緒に参加させましょう。',
+    'まず頭→腕の順で別々に練習しましょう。着られた時は大げさに褒めることが意欲につながります。',
+    '袖を抜いてから頭を出す順番を繰り返し練習しましょう。お風呂前の着替えタイムに毎日練習を。',
+    '「これは表？裏？」と考えさせてから一緒に直しましょう。間違いに自分で気づく力を育てます。',
+    '両袖を内側に折る→縦半分→横半分の3ステップを一緒にやりましょう。',
+    '人差し指・中指・親指の3本で持つ感覚を毎日練習しましょう。鉛筆グリップを使うと習慣化しやすくなります。',
+    '大きな紙にのびのびと線を引かせましょう。線路・道路など描く対象を決めると楽しく練習できます。',
+    'りんごやお月様など丸いものを一緒に描く遊びを取り入れましょう。一筆で丸く閉じることを意識させて。',
+    '山やおにぎりの絵を一緒に描きましょう。角でしっかり折り返すことを確認してあげてください。',
+    'お家や窓の絵を一緒に描きましょう。4つの角を意識させることがポイントです。',
+    '丸を描いてから目・鼻・口を一緒に足しましょう。鏡で顔を見ながら描くと楽しく取り組めます。',
+    '大きめの枠の塗り絵から始めましょう。はみ出しても叱らず、枠の中を塗ろうとする気持ちを褒めて。',
+    'トイレに行く前に毎回一人でやらせましょう。ゴムの位置に手をかけることから教えてあげてください。',
+    'ゴムをつかんで両手で上げる動作を練習しましょう。お尻まで上がったか自分で確認させる習慣を。',
+    'トイレの後は必ず一人でレバーを押させましょう。一度丁寧に見せればすぐ覚えられます。',
+    '毎朝食後にトイレに座る習慣をつけましょう。出なくても毎日同じ時間に座ることが先決です。',
+    '拭き方の手順を一緒に確認しましょう。大人が仕上げ拭きをしながら「自分でやってみよう」と移行してください。',
+    'ペーパーを切る長さの感覚を一緒に確認しましょう。多すぎず少なすぎずの量を体で覚えさせましょう。',
+    '家のトイレで毎回立って練習しましょう。便器の前に立つ位置を教えてあげてください。',
+    'トイレの後は必ず手洗い場へ誘導しましょう。洗い忘れた時は「一緒に洗おう」と誘う形で習慣化を。',
+    '蛇口のひねり方を一緒に練習しましょう。水の出し過ぎに気づいたら「ちょっとだけ」と加減を教えて。',
+    '石けんを泡立てて10秒以上洗う手順を一緒にやって見せましょう。歌いながら洗うと楽しく続けられます。',
+    'ハンカチをポケットに入れる習慣から始めましょう。手を洗った後は必ず自分で出して拭かせましょう。',
+    'まずブクブクうがいから練習し、慣れたらガラガラうがいに移行しましょう。帰宅後すぐが習慣化のタイミングです。',
+    '起床後すぐ洗面台へ連れて行き、一緒に顔を洗う朝のルーティンを作りましょう。',
+    'お風呂の時間を毎日固定しましょう。楽しい時間にすることで自然と習慣になります。',
+    '毎日のお風呂でシャンプーと石けんを使う習慣を固定しましょう。自分で洗う部分を少しずつ増やして。',
+    'ハンカチをすぐ出せる場所に入れておきましょう。汗をかいたら「ハンカチで拭いてみよう」と声をかけて。',
+    '帽子をかぶる前に顎紐を通す手順を一緒に練習しましょう。鏡の前でやると自分で確認しやすくなります。',
+    '話しかける時にお子様の顔をのぞき込み、目が合ったら話すようにしましょう。親の習慣が子に伝わります。',
+    '着る前に前後の目印（タグ・デザイン）を一緒に確認する習慣をつけましょう。',
+    '脱ぐ時に袖を引っ張らず、裾から持ち上げる方法を一緒に練習しましょう。',
+    '定時トイレを続けながら「おしっこ出そうな時は自分で行けるかな」と声をかけ、成功したら大げさに褒めましょう。',
+    '朝食後すぐにトイレに座る時間を作りましょう。出なくても毎朝座る習慣をつけることが先決です。',
+    '自分で磨かせてから大人が仕上げ磨きをするルールを作りましょう。自分で磨く時間が自立の練習になります。',
+    '鼻に空気を当てて出す感覚をお風呂でつかみましょう。片鼻ずつ、ゆっくり練習してください。',
+  ],
+  shokuji: [
+    '立ちそうになったら「あと一口食べたら終わりね」と区切りを作り、一貫して座るルールを守りましょう。',
+    '足置き台を用意してイスのサイズを体に合わせましょう。足が地についていると姿勢が自然に安定します。',
+    '食事中はテレビを消すルールを家族全員で決めましょう。最初は音楽だけかけると沈黙が気になりません。',
+    '食事開始の時間をできるだけ固定しましょう。「ご飯の時間だよ」と一定のリズムが集中力を高めます。',
+    '毎回自分で開けさせましょう。力のかけ方のコツを一緒に確認してあげてください。',
+    '食後は自分でお箸箱にしまう習慣を徹底しましょう。入れる向きを一緒に確認してあげてください。',
+    'スプーンの柄を上から3本指でつまむ持ち方を毎食意識させましょう。繰り返しが習慣化の鍵です。',
+    'お茶碗を傾けることを教えましょう。少量ずつすくう練習を毎食繰り返してください。',
+    '「これはスプーン？フォーク？どっちで食べる？」と毎食問いかけましょう。自分で考えることが使い分けを育てます。',
+    '「反対の手でお皿を持ってね」と毎食声をかけましょう。最初は親が手を添えて一緒にやってみてください。',
+    '食後に「お椀を流し台に持っていける？」と頼みましょう。お手伝いの達成感が意欲につながります。',
+    '家でもお給食セットを使って食べる練習をしましょう。毎朝自分で出す習慣をつけると幼稚園でもスムーズになります。',
+    '食後に自分でセットをしまう手順を一緒に練習しましょう。順番を絵で示してあげると覚えやすくなります。',
+    '四角に折る手順を一緒にやって見せましょう。角を合わせて折ることを丁寧に教えてあげてください。',
+    'たたんだあと袋に入れるまでがセットと伝えましょう。一連の流れを毎食後に習慣化してください。',
+    '嫌いな野菜を細かく刻んで混ぜる・好きなものと一緒に出すなど工夫しましょう。一口食べたら大げさに褒めて。',
+    'お椀を持ち上げて食べる・スプーンを水平に口まで運ぶことを教えましょう。こぼしても叱らず考えさせてください。',
+    '嫌いなものは「一口だけチャレンジ」から始めましょう。チャレンジした事実を大げさなくらい褒めてあげてください。',
+  ],
+  rikai: [
+    '鏡の前で「男の子だよ」と毎日確認しましょう。絵本や人形遊びで男の子・女の子の概念を自然に教えて。',
+    'お家で追いかけっこをたくさんしましょう。鬼から逃げる楽しさを体験させてあげてください。',
+    'お父さんが逃げて子供が捕まえる遊びをしましょう。捕まえた時に大喜びして見せると張り切るようになります。',
+    '1〜10を一緒に数えながら目を見つめ合うゲームをしてみましょう。日常で目を合わせて話しかける習慣も大切です。',
+    'お風呂で1〜10まで一緒に数えながら洗う習慣をつけましょう。毎日の繰り返しが一番の近道です。',
+    '手拍子をしながら一緒に1〜10を数えましょう。歌のリズムに合わせると口と手が合いやすくなります。',
+    '靴を並べる時に「こっちが右・こっちが左」と毎回確認させましょう。つま先を合わせると判断しやすくなります。',
+    '毎日フルネームで呼びかけましょう。「お名前は？」と質問する練習を繰り返してください。',
+    '自分の名前を書いた名札を毎日見せて「これがあなたのお名前だよ」と繰り返し伝えましょう。',
+    'ご飯を食べる手が右手と教えましょう。毎日の生活の中で「右手どっち？」と確認する機会を作ってください。',
+    '毎回の信号で「青になったら渡れるよ」と一緒に確認する習慣をつけましょう。',
+    '赤信号では必ず止まることを毎回実践しましょう。「赤は止まれだよ」と伝えながら一緒に止まる経験を積んで。',
+    'おもちゃが欲しい時に「貸してって言ってみよう」とその場で促しましょう。言えたらすぐ笑顔で応えて。',
+    '「貸して→いいよ→渡す」の流れをロールプレイで楽しく練習しましょう。貸せた時は大げさに褒めて。',
+    '取ろうとした時は怒らず「貸してって言おうね」とすぐ言葉を教えましょう。衝動の瞬間に対処法を伝えることが大切です。',
+    '気持ちを言葉で伝える練習をしましょう。「いやだ」「やめて」と言葉で言えるよう感情表現を一緒に練習してください。',
+    'グー・チョキ・パーを一つずつ繰り返し練習しましょう。毎日じゃんけんゲームを取り入れると上達します。',
+    'グー・チョキ・パーの強弱関係を絵で教えましょう。毎日じゃんけんをして勝ち負けを確認する習慣をつけて。',
+    '「後で」と言った時は必ず約束を守りましょう。待てた時は「えらく待てたね！」と必ず褒めてください。',
+    '「新聞持ってきて」などの簡単なお手伝いを毎日お願いしましょう。できたら毎回感謝を伝えることが意欲を高めます。',
+    '毎日一つだけお子様専用のお手伝いを決めましょう。植木の水やりや食器並べなど、習慣化できる役割を与えて。',
+    '「うさぎって言えるかな？」と問いかけて真似させましょう。興味のある言葉から始めると取り組みやすくなります。',
+    '2つの絵カードを並べて指差しながら言わせましょう。ゆっくり繰り返すことで記憶しやすくなります。',
+    '3つの絵カードを並べて順番に指差しながら言う練習をしましょう。毎日少しずつ増やしていってください。',
+  ],
+  undo: [
+    '床にテープで丸を作り、その中でジャンプする練習をしましょう。毎日数回繰り返すと短期間で上達します。',
+    '公園で毎日走る機会を作りましょう。ゆっくりからだんだん速くする練習を繰り返してください。',
+    '毎日公園でかけっこをしましょう。最初は短い距離から少しずつ伸ばしていってください。',
+    '公園の鉄棒に毎日ぶら下がる練習を。最初は5秒からで大丈夫。手の握り方を一緒に確認してあげてください。',
+    '公園で一緒にすべり台に取り組みましょう。怖がる場合は最初に親が抱っこして一緒に滑ると安心感が生まれます。',
+    '毎日歯磨き中に片足立ちを練習しましょう。最初は壁に手を添えてOKです。少しずつ時間を延ばして。',
+    '右足と同様、歯磨き中など毎日の習慣に組み込みましょう。左右交互に練習することが大切です。',
+    '手すりを持ちながら交互に上がる練習をしましょう。毎日の外出時に階段を使うことを意識してみてください。',
+    '手すりをしっかり持たせながら一段ずつ練習しましょう。怖がる場合は最初は手を持って一緒に降りて。',
+    'お風呂上がりのストレッチタイムに両足上げ練習を。「足をピーンってしてみよう」と楽しく取り組んで。',
+    '毎日寝る前に一緒にストレッチしましょう。体が温まったお風呂上がりに行うと柔軟性が高まりやすくなります。',
+    '毎日手遊び歌をしながら指の曲げ伸ばし練習をしましょう。「一本橋こちょこちょ」などが効果的です。',
+    '右手と同様に毎日練習しましょう。利き手でない方は特に丁寧に練習してあげてください。',
+    '両手を使った手遊び歌を毎日取り入れましょう。左右交互に指を動かす練習を続けてください。',
+    '毎日じゃんけんをしながら練習しましょう。一つずつゆっくり形を作る練習を繰り返してください。',
+    '両手で同時にグーチョキパーをゆっくり作る練習をしましょう。鏡の前でやると自分で形を確認できます。',
+    '朝のテレビタイムや絵本タイムに正座に誘導してみましょう。短い時間から始めて少しずつ慣れさせてください。',
+    '絵本を読む時間に体操座りを促しましょう。足を抱えて体を丸くする形を一緒にやってみてください。',
+    '休日はお父さんと体を使った遊びを積極的に取り入れましょう。高い高いやダイナミックな遊びが運動能力を伸ばします。',
+  ],
+};
+
+// =============================================
+// 退行アドバイス（前回より下がった項目に表示）
+// ── 子供の心理的背景（構って欲しい・赤ちゃん返り等）も含む ──
+// =============================================
+const REGRESSION_ADVICE = {
+  kotoba: [
+    '前はできていた返事をしなくなった場合、「もっと構って欲しい」「自分を見て」というサインのことがあります。叱る前にたっぷり目を合わせて話しかける時間を作り、返事できた瞬間を大げさに喜んであげましょう。',
+    '大人が幼児語を使いやすくなるのは、お子様が無意識に「赤ちゃん扱いをして欲しい」と求めているサインかもしれません。甘えを少し受け入れながらも、正しい言葉を並行して使い続けることが大切です。',
+    '幼児語に戻ったのは赤ちゃん返りや「もっと可愛がられたい」という気持ちの表れかもしれません。叱らず、たっぷりスキンシップを増やしながら正しい言葉をモデルとして見せ続けましょう。',
+    '正しく言い直すことを嫌がるのは試し行動かもしれません。無理に直させず、楽しい雰囲気の中でモデルを見せ続け、できた時だけ自然に喜びましょう。',
+    'スクリーンタイムが増えているのは退屈・不安・「構って欲しい」のサインのこともあります。画面の代わりに親との対話・遊びの時間を意識して増やしてみてください。',
+    '絵本を嫌がるようになったのは疲れや環境変化のストレスサインかもしれません。無理せず短い絵本から再開し、読み聞かせをスキンシップの時間として大切にしましょう。',
+    '以前言えていた名前を言わなくなった場合、知っているのにあえて言わない「試し行動」や甘えかもしれません。「知ってるよね？教えて！」と役割を逆転させると喜んで答えることがあります。',
+    '買い物で「これ何？」と聞いても答えなくなったのは、教えてもらいたい・甘えたいサインかもしれません。「一緒に確認しようか」と学び直しの時間を楽しみに変えましょう。',
+    '果物の名前を言わなくなった場合、語彙の整理期や「もっと教えてもらいたい」という甘えかもしれません。プレッシャーを外して一緒に確認する時間を楽しみましょう。',
+    '動物の名前を言わなくなったのは、知っているのにあえて言わない試し行動かもしれません。「知ってるよね、教えて！」と逆にお願いするのが効果的です。',
+    '色の名前が出にくくなった場合、集中力低下や精神的な疲れのサインかもしれません。プレッシャーを与えず、日常の中で自然に「赤いね」と声をかけ続けましょう。',
+    '歌わなくなったのは完璧主義の芽生え（うまくできないと感じている）や、見られることへの恥ずかしさかもしれません。一緒に歌って「楽しさ優先」の雰囲気を作りましょう。',
+    'できていた挨拶をしなくなったのは反発期や恥ずかしさ増大のサインです。強制せず、親御さんが毎日自然に挨拶する姿を見せ続けることが最も効果的です。',
+    '「いただきます」を言わなくなったのは習慣のゆるみか、親の様子を試しているかもしれません。家族全員で一緒に言う空気感を作ることが大切です。',
+    '「ごちそうさま」が出なくなった場合、食事への集中力低下や反発のサインかもしれません。楽しい雰囲気で一緒に言う習慣を再構築しましょう。',
+    '「ありがとう」を言わなくなったのは反発期のサインかもしれません。強制せず、親御さんが日常でありがとうをたくさん言う姿を見せましょう。',
+    '「ごめんなさい」が言えなくなったのは叱られることへの恐れや反発のサインかもしれません。謝れた時に大げさに喜び、「言えた」体験を積み重ねることが大切です。',
+    '言葉で伝えずに泣いたり怒ったりに戻った場合、疲れや不安から言葉を使う余裕がなくなっているサインかもしれません。まず気持ちに寄り添い、落ち着いてから言葉を促しましょう。',
+  ],
+  seikatsu: [
+    '自分で脱げなくなったのは「やってもらいたい」という甘えのサインかもしれません。「一緒にやろう」と誘い、最後の一歩だけ自分でさせることから再開しましょう。',
+    '自分で履けなくなったのは赤ちゃん返りや構って欲しいサインかもしれません。「できるよね、でも一緒にやろう」と関わりながら自立を促しましょう。',
+    '靴下を脱がなくなったのは「やってもらう心地よさ」を求めているかもしれません。脱げたら大げさに褒めて、自分でできる喜びを思い出させましょう。',
+    '靴下を履けなくなったのは退行の一つです。怒らず「どこまで自分でできる？」と少しずつ関わり、できた部分を必ず認めてあげましょう。',
+    'たためなくなったのは集中力の低下や「やってもらいたい」という甘えのサインかもしれません。一緒にたたむ時間を楽しみに変えましょう。',
+    '着られなくなったのは赤ちゃん返りの典型的なサインです。「やってあげる」時間と「自分でやる」時間をバランスよく作り、できた時は大げさに褒めましょう。',
+    '脱げなくなったのは親にやってもらいたいサインかもしれません。全部やってあげるのではなく、最後の一工程だけ「自分でやってみて」と促しましょう。',
+    '裏返しを直さなくなったのは「面倒」「やってもらいたい」という気持ちかもしれません。遊び感覚で一緒にやりながら、できた時は必ず認めましょう。',
+    'たためなくなったのは疲れや集中力低下のサインかもしれません。「一緒にやろう」と誘い、少しずつ自分でやる部分を増やしていきましょう。',
+    '正しい持ち方に戻れなくなったのは疲れや「どうせできない」という自信喪失のサインかもしれません。怒らず、楽しく描く時間を大切にしながら自然に促しましょう。',
+    '描けなくなった場合、「うまくできない」という自信喪失のサインかもしれません。上手さを求めず「一緒に描こう」と楽しさ優先で関わりましょう。',
+    '丸が描けなくなったのは集中力低下や自信喪失のサインかもしれません。「一緒に描こう」と誘い、描けた丸を「すごい！」と大げさに喜んであげましょう。',
+    '三角が描けなくなったのは以前よりハードルを高く感じているかもしれません。「できなくていいよ」という安心感を先に与え、プレッシャーを減らしましょう。',
+    '四角が描けなくなった場合も同様です。遊び感覚で一緒に描き、結果より「やろうとする気持ち」を褒めましょう。',
+    '顔が描けなくなったのは完璧主義の芽生えや自信喪失かもしれません。「どんな顔でもいい」という雰囲気を作り、自由に描かせましょう。',
+    '塗り絵をしなくなったのは「上手くできない」という不安かもしれません。完成度を求めず、一緒に塗る楽しさを体験させましょう。',
+    'パンツを自分で下ろさなくなったのは赤ちゃん返りや甘えのサインかもしれません。トイレを楽しい場所にしながら、少しずつ自分でやる習慣を再構築しましょう。',
+    '自分でパンツを上げなくなったのは親との密着を求めているサインかもしれません。やってあげながらも「自分でやれるよ」という言葉をかけ続けましょう。',
+    'トイレの水を流さなくなったのは忘れているのか試し行動かもしれません。「レバーを押しておいで」と穏やかに促しましょう。',
+    'トイレでの排便ができなくなったのは、ストレスや環境変化（弟妹の誕生・引越しなど）のサインとして非常によくあります。叱らず、原因となる変化を振り返り、安心感を与えることを優先しましょう。',
+    'お尻を自分で拭かなくなったのは甘えたい・構って欲しいサインかもしれません。「できるよ、一緒にやろう」と関わりを持ちながら、少しずつ自立に戻していきましょう。',
+    '拭けなくなったのは赤ちゃん返りのサインかもしれません。安心感を与えながら、できた時は大げさに褒めて自信を取り戻させましょう。',
+    '立っておしっこができなくなったのは不安や自信喪失のサインかもしれません。「できる」という言葉より、成功体験を積み重ねることを優先しましょう。',
+    '手洗い習慣が戻らなくなったのは「どうせ言われる」という反発かもしれません。叱るより「一緒に洗おう」と楽しい習慣として再構築しましょう。',
+    '蛇口の操作ができなくなったのは「やってもらいたい」という甘えかもしれません。「自分でできる」という自信を取り戻す関わりを意識しましょう。',
+    '一人で手を洗わなくなったのは親との密着を求めているサインかもしれません。一緒に洗いながら自然に自立を促しましょう。',
+    'ハンカチで拭かなくなったのは面倒・試し行動かもしれません。可愛いハンカチにするなど楽しみを作り、使う動機を高めましょう。',
+    'うがいをしなくなったのは反発期のサインかもしれません。強制せず、楽しいルーティンとして再度取り組みましょう。',
+    '顔を洗わなくなったのは朝のルーティン崩れや甘えのサインかもしれません。「一緒に洗おう」と朝の密着時間に変えましょう。',
+    'お風呂を嫌がるようになったのは何らかの不安や疲れのサインかもしれません。楽しいお風呂タイムを再演出し、入浴を喜びの時間に戻しましょう。',
+    '洗わなくなったのは面倒・疲れのサインかもしれません。一緒に洗いながら習慣を再構築しましょう。',
+    '汗を拭かなくなったのは「やってもらいたい」という甘えかもしれません。拭いてあげながら「自分でもできるね」と声をかけ続けましょう。',
+    '帽子を被れなくなったのは試し行動か反発のサインかもしれません。「被れたらかっこいい」など本人が前向きになれる声かけを工夫しましょう。',
+    '顔を見て話を聞かなくなったのは不安・集中力低下・試し行動のサインかもしれません。しゃがんで目線を合わせ、話しかける工夫から始めましょう。',
+    '前後を間違えて着るようになったのは「急いでいる」「面倒」または確認する習慣が薄れたサインかもしれません。着る前の「確認タイム」を一緒に楽しく作り直しましょう。',
+    '裏返しで脱ぐようになったのは「細かいことより早く終わらせたい」という気持ちかもしれません。一緒に確認する習慣を再び作りましょう。',
+    '自分からトイレに行かなくなったのは甘え・退行・または「間に合わないかも」という緊張のサインかもしれません。成功体験を積み重ね、トイレに行くことを褒め続けましょう。',
+    '朝の排便がなくなったのは生活リズムの乱れや精神的なストレスのサインかもしれません。規則正しい生活習慣を見直し、朝の安心できる時間を作ることが重要です。',
+    '自分で歯を磨かなくなったのは甘えや反発のサインかもしれません。「自分で磨いてからお母さんが仕上げる」という流れを楽しい共同作業として再構築しましょう。',
+    '鼻水をかまなくなったのは面倒・「やってもらいたい」サインかもしれません。一緒にやりながら「できたね」と喜ぶ体験を積み重ねましょう。',
+  ],
+  shokuji: [
+    '食事中に立ち歩くようになったのは、じっとしていられないほどの興奮・不安・または「構って欲しい」サインかもしれません。食事時間を短くして成功体験を積み、徐々に延ばしていきましょう。',
+    '足がイスに上がるようになったのは体の落ち着きのなさや「構って欲しい」サインかもしれません。足置き台を準備しながら、食事前に「体を整えよう」と声をかけましょう。',
+    '食事中にテレビをつけるようになったのは食事への集中力低下や沈黙を避けたいサインかもしれません。食卓で楽しい会話を意識的に増やし、テレビなしでも楽しい時間にしましょう。',
+    '食事時間が不規則になったのは生活リズムの乱れか環境ストレスのサインかもしれません。まず起床・就寝時間から整え、食事リズムを再構築しましょう。',
+    'お箸箱を開けなくなったのは「やってもらいたい」甘えかもしれません。「できるよね？」と信頼を伝えながら、待ってあげましょう。',
+    'しまえなくなったのは後片付けへの意欲低下か反発かもしれません。「一緒にしまおう」と楽しい共同作業に変えましょう。',
+    'お箸持ちができなくなったのは「楽な方法に戻りたい」という退行かもしれません。怒らず「これが上手な持ち方だよ」と優しく示し続けましょう。',
+    '自分でご飯を食べなくなったのは赤ちゃん返り・甘えのサインかもしれません。「食べさせてもらいたい」気持ちを少し受け入れながら、「一口だけ自分で」から再出発しましょう。',
+    '道具の使い分けができなくなったのは「どうでもいい」という無気力のサインかもしれません。使い分けをゲームにする工夫をしてみましょう。',
+    '反対の手で押さえなくなったのは集中力低下か試し行動かもしれません。「お皿が動いちゃうよ？」と気づかせる声かけから始めましょう。',
+    '食器を運ばなくなったのは「やってもらいたい」甘えかもしれません。「お手伝いしてくれる？」とお願い形式で促すと応じやすくなります。',
+    'お給食セットを出さなくなったのは準備への意欲低下かもしれません。「用意できたら教えて」と主体性を引き出す声かけを工夫しましょう。',
+    'しまえなくなったのは片付け習慣のゆるみか反発かもしれません。「一緒にしまおう」と関わりを持ちながら再習慣化しましょう。',
+    'たためなくなったのは面倒・試し行動かもしれません。遊び感覚で「一緒に折ろう」と取り組みましょう。',
+    '袋にしまえなくなったのは後片付け意欲の低下かもしれません。「袋にしまったら完成！」という達成感を意識した声かけを。',
+    '好き嫌いが増えたのはストレスや環境変化のサインのことがあります。食事を楽しい場にすることを最優先に、一口チャレンジは穏やかに続けましょう。',
+    'こぼすようになったのは集中力低下・疲れ・または注目を引くためのサインかもしれません。叱らず、姿勢や持ち方を優しく確認しながら関わりましょう。',
+    '嫌いなものをまったく食べなくなったのは強いストレスや主張のサインかもしれません。食事を強制の場にせず、楽しい雰囲気を取り戻すことを優先しましょう。',
+  ],
+  rikai: [
+    '自分の性別を答えなくなったのは試し行動か照れかもしれません。深刻に考えず、日常の中で自然に確認し続けましょう。',
+    '鬼ごっこで逃げなくなったのは怖さ・不安・または「追いかけてもらいたい」甘えかもしれません。楽しさを確認しながら、安心できる環境で再挑戦しましょう。',
+    '捕まえにいかなくなったのは自信喪失か「失敗したくない」という気持ちかもしれません。「できる」という安心感を先に与えましょう。',
+    '目を合わせなくなったのは不安・緊張・内向き傾向のサインかもしれません。怖い顔で呼びかけず、温かい笑顔で目が合ったことを喜びましょう。',
+    '数えなくなったのは集中力低下か「できなくなった」という不安かもしれません。ゲーム感覚で楽しく数えながら、できた喜びを一緒に味わいましょう。',
+    '手を叩きながら数えなくなったのは集中力の問題か緊張かもしれません。プレッシャーを外し、歌遊び感覚で取り組みましょう。',
+    '左右の靴を間違えるようになったのは急いでいるか「誰かに直してもらいたい」甘えかもしれません。履く前に一緒に確認する習慣を穏やかに再構築しましょう。',
+    'フルネームを言わなくなったのは照れ・試し行動かもしれません。深刻にならず「お名前教えて？」とゲーム感覚で続けましょう。',
+    '自分の名前の漢字がわからなくなったのは記憶の整理期か興味の変化かもしれません。名前カードを日常で見せながら自然に確認しましょう。',
+    '右手・左手がわからなくなったのは一時的な混乱か試し行動かもしれません。叱らず「ご飯食べる手はどっち？」とゲームにしましょう。',
+    '青信号で渡らなくなったのは不安・慎重さの増大か甘えかもしれません。「一緒に確認しよう」と安心できる形で毎回練習しましょう。',
+    '赤信号で止まらなくなったのは衝動性の増大のサインかもしれません。命に関わる習慣なので、毎回一緒に止まる体験を根気よく積み重ねましょう。',
+    '「貸して」が言えなくなったのは言葉より先に行動する衝動性の戻りかもしれません。欲しいと感じた瞬間に「貸してって言おう」とその場で促しましょう。',
+    '「いいよ」と渡せなくなったのは自分のものへの執着が強まったサインかもしれません。「後で返ってくるよ」と安心感を与えながら少しずつ練習しましょう。',
+    'おもちゃを取るようになったのは衝動制御が一時的に崩れているサインかもしれません。叱る前に「どうしたかったの？」と気持ちを聞き、言葉で伝える方法を一緒に考えましょう。',
+    '押したり叩いたりするようになったのは言葉で伝えきれないストレスや不安のサインかもしれません。まず気持ちに寄り添い「嫌だったんだね」と共感することが最初の一歩です。',
+    'じゃんけんの手が出せなくなったのは緊張・完璧主義・試し行動かもしれません。結果を気にせず「遊び」として楽しく取り組みましょう。',
+    '勝ち負けがわからなくなったのは負けることへの強い抵抗感のサインかもしれません。負けても笑える環境を作り、「また挑戦しよう」の声かけを大切に。',
+    '待てなくなったのは衝動性の増大や、我慢できない何らかのストレスのサインかもしれません。待てた時は大げさに褒め、待つことの価値を感じさせましょう。',
+    '指示で動かなくなったのは反発期のサインかもしれません。命令形ではなく「〇〇持ってきてくれる？」とお願い形式にすると動きやすくなります。',
+    'お手伝いをしなくなったのは疲れ・反発・「やらなくても誰かがやってくれる」という学習かもしれません。「あなたの仕事」という専用タスクを与え、担ってもらう形にしましょう。',
+    '単語を真似しなくなったのは照れ・試し行動・言語的な整理期かもしれません。プレッシャーを外し、遊び感覚で取り組みましょう。',
+    '2語の記憶ができなくなったのは集中力低下か精神的な負荷のサインかもしれません。負担を減らし、1語から再出発しましょう。',
+    '3語の記憶ができなくなったのは精神的な疲れや環境ストレスのサインかもしれません。休息を優先し、心の余裕が戻ったら再開しましょう。',
+  ],
+  undo: [
+    'ジャンプしなくなったのは自信喪失・疲れ・「失敗したくない」という気持ちかもしれません。楽しくやろうという雰囲気を作り、結果より参加することを褒めましょう。',
+    '転ぶようになったのは疲れや体調低下のサインかもしれません。十分な睡眠と休養を確保し、体が整ったら再挑戦しましょう。',
+    '走れなくなったのは体力低下や自信喪失かもしれません。距離を短くして成功体験から再出発しましょう。',
+    '鉄棒にぶら下がれなくなったのは怖さ・自信喪失のサインかもしれません。「怖いんだね」と気持ちを認め、段階的に近づけましょう。',
+    'すべり台を嫌がるようになったのは何らかの怖い体験や高さへの不安増大かもしれません。一緒に乗りながら安心感を取り戻しましょう。',
+    '片足立ちができなくなったのは体調低下や「できない」という自信喪失かもしれません。壁に手を添えながら、短時間の成功から再出発しましょう。',
+    '左足の片足立ちができなくなった場合も同様です。プレッシャーを外し、楽しい挑戦として取り組みましょう。',
+    '階段の交互上りができなくなったのは慎重さの増大か怖さのサインかもしれません。手をつないで一緒に上ることから安心感を取り戻しましょう。',
+    '交互下りができなくなったのは高さへの不安増大かもしれません。「大丈夫だよ」という安心感を言葉と行動で示しながら再挑戦しましょう。',
+    '両足を上げられなくなったのは体幹の衰えか「見られたくない」という恥ずかしさかもしれません。一人でやる楽しい機会を作りましょう。',
+    '前屈できなくなったのは体の固さの増大か疲れのサインかもしれません。お風呂上がりのリラックスした状態で、無理のない範囲で取り組みましょう。',
+    '指の動きができなくなったのは集中力低下か「上手くできない」という不安かもしれません。楽しい手遊びとして取り組み、できた動きを喜びましょう。',
+    '左手の指の動きができなくなったのも同様です。焦らず楽しく、遊びの中で練習しましょう。',
+    '両手の指の動きができなくなったのは協調運動の一時的な退行かもしれません。手遊び歌を楽しみながら自然に取り組みましょう。',
+    'グーチョキパーができなくなったのは「うまくできない」という自信喪失かもしれません。正確さより楽しく参加することを優先しましょう。',
+    '両手でグーチョキパーができなくなったのも同様です。遊び感覚を大切に、成功した時に喜び合いましょう。',
+    '正座ができなくなったのは体が疲れているか反発のサインかもしれません。短時間から再チャレンジし、できた時は認めてあげましょう。',
+    '体操座りができなくなったのは落ち着きのなさや試し行動かもしれません。「一緒にやろう」と楽しい雰囲気で取り組みましょう。',
+    'お父さんと遊ばなくなったのは父親との関係性の変化や甘えのサインかもしれません。無理に遊ばせず、子供が興味を持てる遊びをお父さんが率先して楽しむ姿を見せましょう。',
+  ],
+};
+
+// =============================================
+// アプリ状態
+// =============================================
+let currentDateIdx = 0;
+let currentCatIdx = 0;
+let records = {};
+let childName = '';
+let childClass = '';
+let registrationDate = null;   // 登録日（卒業判定に使用）
+let comments = {};             // { dateIdx: text }
+let commentSaveTimer = null;
+let expandedItems = new Set();
+
+// =============================================
+// 初期化
+// =============================================
+window.onload = function() {
+  // 現在の日付からチェック期間を自動設定
+  const now = new Date();
+  const m = now.getMonth() + 1;
+  const d = now.getDate();
+  if      (m < 5 || (m === 5 && d <= 6))  currentDateIdx = 0;
+  else if (m < 7 || (m === 7 && d <= 20)) currentDateIdx = 0;
+  else if (m < 8 || (m === 8 && d <= 30)) currentDateIdx = 1;
+  else if (m >= 9 && m <= 12)             currentDateIdx = 2;
+  else if (m === 1 && d <= 9)             currentDateIdx = 3;
+  else                                     currentDateIdx = 4;
+
+  // GAS環境かどうかチェック
+  if (typeof google === 'undefined' || !google.script) {
+    // ブラウザ直接表示 → 登録画面へ（localStorageで仮保存）
+    const saved = localStorage.getItem('koume_child');
+    if (saved) {
+      const data = JSON.parse(saved);
+      childName        = data.name;
+      childClass       = data.cls || '';
+      registrationDate = data.regDate ? new Date(data.regDate) : null;
+      const saved2 = localStorage.getItem('koume_records');
+      records  = saved2 ? JSON.parse(saved2) : {};
+      const saved3 = localStorage.getItem('koume_comments');
+      comments = saved3 ? JSON.parse(saved3) : {};
+      showMainApp();
+    } else {
+      showScreen('reg-screen');
+    }
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function(info) {
+      if (info.registered) {
+        childName        = info.childName;
+        childClass       = info.childClass || '';
+        registrationDate = info.registrationDate ? new Date(info.registrationDate) : null;
+        loadRecords();
+      } else {
+        showScreen('reg-screen');
+      }
+    })
+    .withFailureHandler(function() {
+      showScreen('reg-screen');
+    })
+    .getParentInfo();
+};
+
+function loadRecords() {
+  google.script.run
+    .withSuccessHandler(function(data) {
+      records = data;
+      google.script.run
+        .withSuccessHandler(function(c) { comments = c || {}; showMainApp(); })
+        .withFailureHandler(function()  { comments = {};      showMainApp(); })
+        .getComments();
+    })
+    .withFailureHandler(function() {
+      records = {};
+      comments = {};
+      showMainApp();
+    })
+    .getRecords();
+}
+
+function showMainApp() {
+  if (registrationDate && isGraduated(registrationDate)) {
+    buildGraduationScreen();
+    showScreen('graduation-screen');
+    return;
+  }
+  document.getElementById('header-name').textContent = childName + ' さん';
+  document.getElementById('header-class').textContent = '梅乃園 ' + (childClass || '小梅クラス');
+  renderDateTabs();
+  renderCatTabs();
+  renderItems();
+  renderComment();
+  showScreen('main-screen');
+}
+
+// =============================================
+// 登録
+// =============================================
+function selectClass(cls) {
+  document.getElementById('child-class').value = cls;
+  document.getElementById('btn-aka').classList.toggle('selected', cls === '赤小梅');
+  document.getElementById('btn-shiro').classList.toggle('selected', cls === '白小梅');
+}
+
+function submitRegistration() {
+  const name = document.getElementById('child-name').value.trim();
+  const kana = document.getElementById('child-kana').value.trim();
+  const cls  = document.getElementById('child-class').value;
+  if (!name) { alert('お子様のお名前を入力してください'); return; }
+  if (!cls)  { alert('クラスを選んでください'); return; }
+
+  childName  = name;
+  childClass = cls;
+  if (typeof google === 'undefined' || !google.script) {
+    const regDate = new Date().toISOString();
+    registrationDate = new Date(regDate);
+    localStorage.setItem('koume_child', JSON.stringify({ name, kana, cls, regDate }));
+    records = {};
+    showMainApp();
+    return;
+  }
+  google.script.run
+    .withSuccessHandler(function() { loadRecords(); })
+    .withFailureHandler(function() { records = {}; showMainApp(); })
+    .registerChild(name, kana, cls);
+}
+
+function showReg() {
+  document.getElementById('child-name').value = childName;
+  if (childClass) selectClass(childClass);
+  showScreen('reg-screen');
+}
+
+
+// =============================================
+// UI レンダリング
+// =============================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById(id).classList.add('active');
+}
+
+function isCheckDateComplete(dateIdx) {
+  return CATEGORIES.every(cat =>
+    cat.items.every((_, i) => getScore(cat.id, i, dateIdx) > 0)
+  );
+}
+
+function renderDateTabs() {
+  const el = document.getElementById('date-tabs');
+  el.innerHTML = CHECK_DATES.map((d, i) => {
+    const done = isCheckDateComplete(i);
+    return `<button class="date-tab${i === currentDateIdx ? ' active' : ''}${done ? ' done' : ''}" onclick="selectDate(${i})">
+      ${d}<span class="done-badge">✅完了</span>
+    </button>`;
+  }).join('');
+}
+
+function renderCatTabs() {
+  const el = document.getElementById('cat-tabs');
+  el.innerHTML = CATEGORIES.map((c, i) => {
+    // 成長度スコア: 1=0% / 2=28% / 3=67% / 4=100%（未入力は0扱い）
+    const WEIGHTS = [0, 0, 28, 67, 100];
+    const totalWeight = c.items.reduce((sum, _, idx) => sum + (WEIGHTS[getScore(c.id, idx, currentDateIdx)] || 0), 0);
+    const pct = Math.round(totalWeight / c.items.length);
+    const pctColor = pct >= 80 ? '#2E7D32' : pct >= 50 ? '#E65100' : '#B71C1C';
+    return `<div class="cat-tab${i === currentCatIdx ? ' active' : ''}" onclick="selectCat(${i})">
+      <span class="cat-icon">${c.icon}</span>
+      <span class="cat-name">${c.name}</span>
+      <span class="cat-pct" style="color:${pctColor}">${pct}%</span>
+    </div>`;
+  }).join('');
+}
+
+function renderItems() {
+  const cat = CATEGORIES[currentCatIdx];
+  const el = document.getElementById('items-list');
+
+  // 進捗計算（前回4の項目は達成済みとしてカウント）
+  let filled = 0;
+  cat.items.forEach((_, i) => {
+    const prevScore = currentDateIdx > 0 ? getScore(cat.id, i, currentDateIdx - 1) : 0;
+    const isMastered = prevScore === 4;
+    if (isMastered || getScore(cat.id, i, currentDateIdx) > 0) filled++;
+  });
+  const pct = cat.items.length ? Math.round(filled / cat.items.length * 100) : 0;
+  document.getElementById('progress-label').textContent = `${cat.name}（${currentDateIdx + 1}回目 ${CHECK_DATES[currentDateIdx]}）`;
+  document.getElementById('progress-pct').textContent = `${filled}/${cat.items.length} (${pct}%)`;
+  document.getElementById('progress-fill').style.width = pct + '%';
+
+  el.innerHTML = cat.items.map((item, i) => {
+    const score = getScore(cat.id, i, currentDateIdx);
+    const prevScore = currentDateIdx > 0 ? getScore(cat.id, i, currentDateIdx - 1) : 0;
+    const isMastered = prevScore === 4;  // 前回4→今回は選択肢不要
+    const isOpen = expandedItems.has(`${currentCatIdx}_${i}`);
+
+    // 前回メッセージ（2回目以降のみ）
+    const prevMsgHtml = (currentDateIdx > 0 && prevScore > 0) ? (() => {
+      const msg = PREV_MESSAGES[prevScore];
+      const cls = prevScore === 4 ? 'prev-msg mastered' : 'prev-msg';
+      return `<div class="${cls}">${msg.icon} ${msg.text}</div>`;
+    })() : '';
+
+    // スコアセクション（前回4の場合はバッジのみ）
+    const scoreSectionHtml = isMastered
+      ? `<div class="mastered-badge">🌸 定着済み — 引き続き様子を見ていきましょう</div>`
+      : `<div class="score-section" id="score-${i}">
+          <div class="score-label">📝 ${CHECK_DATES[currentDateIdx]} のチェック</div>
+          <div class="score-btns">
+            ${[1,2,3,4].map(s => `
+              <button class="score-btn${score === s ? ' selected-' + s : ''}" onclick="setScore(${i}, ${s})">
+                ${s}<span>${['あてはまらない','あまり\nあてはまらない','ややあてはまる','あてはまる'][s-1]}</span>
+              </button>
+            `).join('')}
+          </div>
+        </div>`;
+
+    // 退行検知：前回スコアより今回が下がった（両方に値がある場合のみ）
+    const isRegression = prevScore > 0 && score > 0 && score < prevScore;
+    // 通常アドバイス表示：現在または前回スコアが1/2（退行でない場合）
+    const showAdvice = !isRegression && (score === 1 || score === 2 ||
+                        prevScore === 1 || prevScore === 2);
+    const adviceText    = (ADVICE[cat.id] || [])[i] || '';
+    const regressionText = (REGRESSION_ADVICE[cat.id] || [])[i] || '';
+
+    const adviceHtml = isRegression && regressionText ? `
+      <div class="regression-section">
+        <div class="regression-title">⚠️ 前回より下がっています — 心理的な背景も確認しましょう</div>
+        <div class="regression-text">${regressionText}</div>
+      </div>` :
+      (showAdvice && adviceText ? `
+      <div class="advice-section">
+        <div class="advice-title">💪 次のチェックまでにできるようになるコツ</div>
+        <div class="advice-text">${adviceText}</div>
+      </div>` : '');
+
+    return `
+      <div class="item-card${isMastered ? ' is-mastered' : ''}" id="card-${i}">
+        <div class="item-main">
+          <div class="item-num${isMastered ? ' mastered-num' : ''}">${isMastered ? '✓' : i + 1}</div>
+          <div class="item-body">
+            <div class="item-text${isMastered ? ' mastered-text' : ''}">${item.text}</div>
+            <div class="item-bottom" style="justify-content:flex-end">
+              <div class="history-dots">${renderDots(cat.id, i)}</div>
+            </div>
+          </div>
+        </div>
+        <button class="why-btn${isOpen ? ' open' : ''}" id="why-btn-${i}" onclick="toggleItem(${i})">
+          <span>💡 なぜ大切か — タップして開く</span>
+          <span class="why-chevron">▼</span>
+        </button>
+        <div class="why-section${isOpen ? ' open' : ''}" id="why-${i}">
+          <div class="why-title">💡 なぜ大切か</div>
+          <div class="why-text">${item.why}</div>
+        </div>
+        ${prevMsgHtml}
+        ${adviceHtml}
+        ${scoreSectionHtml}
+      </div>`;
+  }).join('');
+}
+
+function renderDots(catId, itemIdx) {
+  return CHECK_DATES.map((_, di) => {
+    const s = getScore(catId, itemIdx, di);
+    const color = s === 0 ? 'var(--score-empty)' : s === 1 ? 'var(--score1)' : s === 2 ? 'var(--score2)' : s === 3 ? 'var(--score3)' : 'var(--score4)';
+    return `<div class="history-dot" style="background:${color}" title="${CHECK_DATES[di]}: ${s || '未記録'}"></div>`;
+  }).join('');
+}
+
+// =============================================
+// インタラクション
+// =============================================
+function selectDate(idx) {
+  currentDateIdx = idx;
+  expandedItems.clear();
+  renderDateTabs();
+  renderCatTabs();
+  renderItems();
+  renderComment();
+}
+
+function selectCat(idx) {
+  currentCatIdx = idx;
+  expandedItems.clear();
+  renderCatTabs();
+  renderItems();
+}
+
+function toggleItem(i) {
+  const key = `${currentCatIdx}_${i}`;
+  if (expandedItems.has(key)) expandedItems.delete(key);
+  else expandedItems.add(key);
+  const why = document.getElementById(`why-${i}`);
+  const btn = document.getElementById(`why-btn-${i}`);
+  const open = expandedItems.has(key);
+  why.classList.toggle('open', open);
+  if (btn) btn.classList.toggle('open', open);
+}
+
+function setScore(itemIdx, score) {
+  const cat = CATEGORIES[currentCatIdx];
+  const key = `${cat.id}_${itemIdx}_${currentDateIdx}`;
+  const prev = records[key] || 0;
+  const newScore = prev === score ? 0 : score; // 同じボタンで解除
+  records[key] = newScore;
+
+  // UI更新
+  const btns = document.querySelectorAll(`#score-${itemIdx} .score-btn`);
+  btns.forEach((btn, i) => {
+    btn.className = 'score-btn' + (newScore === i + 1 ? ` selected-${i + 1}` : '');
+  });
+  // 履歴ドット更新
+  const dotsEl = document.querySelector(`#card-${itemIdx} .history-dots`);
+  if (dotsEl) dotsEl.innerHTML = renderDots(cat.id, itemIdx);
+  // 進捗更新
+  let filled = 0;
+  cat.items.forEach((_, i) => { if (getScore(cat.id, i, currentDateIdx) > 0) filled++; });
+  const pct = Math.round(filled / cat.items.length * 100);
+  document.getElementById('progress-pct').textContent = `${filled}/${cat.items.length} (${pct}%)`;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  // カテゴリタブの達成率を更新
+  renderCatTabs();
+
+  showToast(newScore > 0 ? ['','1 あてはまらない','2 あまりあてはまらない','3 ややあてはまる','4 あてはまる'][newScore] + ' を記録しました' : '記録を消しました');
+
+  // 完了チェック
+  const completed = newScore > 0 && isCheckDateComplete(currentDateIdx);
+  if (completed) {
+    renderDateTabs(); // 完了バッジを表示
+    showToast('🎉 ' + CHECK_DATES[currentDateIdx] + ' のチェックが完了しました！');
+  }
+
+  // 保存（完了時はシート更新もセット）
+  if (typeof google !== 'undefined' && google.script) {
+    google.script.run
+      .withSuccessHandler(function() {})
+      .withFailureHandler(function() {})
+      .saveRecordAndUpdate(cat.id, itemIdx, currentDateIdx, newScore, completed);
+  } else {
+    localStorage.setItem('koume_records', JSON.stringify(records));
+  }
+}
+
+function getScore(catId, itemIdx, dateIdx) {
+  return records[`${catId}_${itemIdx}_${dateIdx}`] || 0;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// =============================================
+// 感想欄
+// =============================================
+
+function renderComment() {
+  const ta    = document.getElementById('comment-textarea');
+  const label = document.getElementById('comment-date-label');
+  const status = document.getElementById('comment-status');
+  if (!ta) return;
+  ta.value = comments[currentDateIdx] || '';
+  label.textContent = `📝 ${CHECK_DATES[currentDateIdx]} の子育て感想`;
+  status.textContent = ta.value ? '✅ 保存済み' : '';
+  status.className = 'comment-status' + (ta.value ? ' saved' : '');
+}
+
+function onCommentInput(text) {
+  comments[currentDateIdx] = text;
+  const status = document.getElementById('comment-status');
+  status.textContent = '入力中...';
+  status.className = 'comment-status';
+  clearTimeout(commentSaveTimer);
+  commentSaveTimer = setTimeout(() => _saveCommentToServer(currentDateIdx, text), 1500);
+}
+
+function _saveCommentToServer(dateIdx, text) {
+  const status = document.getElementById('comment-status');
+  if (typeof google !== 'undefined' && google.script) {
+    google.script.run
+      .withSuccessHandler(() => {
+        status.textContent = '✅ 保存しました';
+        status.className = 'comment-status saved';
+      })
+      .withFailureHandler(() => {
+        status.textContent = '⚠️ 保存失敗';
+        status.className = 'comment-status';
+      })
+      .saveComment(dateIdx, text);
+  } else {
+    localStorage.setItem('koume_comments', JSON.stringify(comments));
+    status.textContent = '✅ 保存しました';
+    status.className = 'comment-status saved';
+  }
+}
+
+// =============================================
+// 卒業判定・卒業画面
+// =============================================
+
+/** 登録日から11ヶ月以上経過しているか */
+function isGraduated(regDate) {
+  const grad = new Date(regDate);
+  grad.setMonth(grad.getMonth() + 11);
+  return new Date() >= grad;
+}
+
+/** 達成統計を計算 */
+function calcAchievements() {
+  let totalAll = 0, masteredAll = 0;
+  const catStats = [];
+
+  CATEGORIES.forEach(cat => {
+    let total = cat.items.length, mastered = 0;
+    cat.items.forEach((_, i) => {
+      // 最後にチェックされたスコアを取得
+      let latest = 0;
+      for (let d = 4; d >= 0; d--) {
+        const s = getScore(cat.id, i, d);
+        if (s > 0) { latest = s; break; }
+      }
+      if (latest === 4) mastered++;
+    });
+    totalAll   += total;
+    masteredAll += mastered;
+    catStats.push({ id: cat.id, name: cat.name, icon: cat.icon, total, mastered, pct: Math.round(mastered / total * 100) });
+  });
+
+  return { totalAll, masteredAll, pct: Math.round(masteredAll / totalAll * 100), cats: catStats };
+}
+
+/** 達成率に応じたメインメッセージ */
+function getMainMessage(pct, name) {
+  if (pct >= 90) return `${name}さんはこの1年間で119項目のほぼすべてを習得し、すばらしい成長を遂げました。毎日欠かさず関わり続けてくださった保護者の皆様のご尽力の賜物です。年少クラスへの準備は万全です。`;
+  if (pct >= 70) return `${name}さんはこの1年間でとても大きく成長しました。毎日の積み重ねが実を結んでいます。自信を持って年少クラスへ進みましょう！保護者の皆様、1年間本当にありがとうございました。`;
+  if (pct >= 50) return `${name}さんは着実に成長を続けてきました。まだ伸び代のある部分もありますが、それは年少クラスでの楽しみです。集団生活の中でさらに大きく育っていきます。温かく見守り続けてください。`;
+  return `${name}さんは確実に成長しています。発達のペースはお子様それぞれです。焦らず、愛情を持って関わり続けることが最高の贈り物になります。1年間、本当にありがとうございました。`;
+}
+
+/** カテゴリ別アドバイス */
+function getCategoryAdvice(catStats) {
+  const STRONG = {
+    kotoba:   '言葉が豊かに育ちました！語彙力と表現力はこれからの学習の大きな土台になります。引き続き読み聞かせと会話を楽しんでください。',
+    seikatsu: '自立心が大きく育ちました。「自分でできる」という自信と誇りが、何事にも積極的に取り組む力になります。',
+    shokuji:  '食事のマナーが身についています。「食べることを楽しむ力」はこれからの健康な生活をずっと支えてくれます。',
+    rikai:    '物事のルールを理解し、社会性が育っています。友達との関わりが上手で、年少クラスでも活躍できるでしょう。',
+    undo:     '体を動かす力が伸びました！活発な体は元気な心の土台。これからもたくさん体を動かす機会を作ってあげてください。',
+  };
+  const WEAK = {
+    kotoba:   '引き続き毎日の絵本の読み聞かせと、お散歩しながらの会話を続けましょう。焦らず話しかけ続けることが言葉を育てます。',
+    seikatsu: '「自分でやってみる」機会を少しずつ増やしていきましょう。失敗しても「できた！」まで待つことが自立心を育てます。',
+    shokuji:  '食事は毎日の練習の場です。一緒に楽しく食べる時間を大切に。「一口だけ」の習慣を根気よく続けましょう。',
+    rikai:    'ゲームやごっこ遊びを通じてルールを楽しく学ぶ機会を作りましょう。年少クラスの集団生活の中でぐんと伸びます。',
+    undo:     '毎日外で体を動かす遊びを続けましょう。お父さんとのダイナミックな遊びがバランス感覚と脳の発達に特に効果的です。',
+  };
+
+  // 特に強いカテゴリ（>=80%）と弱いカテゴリ（<60%）を抽出
+  const advices = [];
+  catStats.forEach(c => {
+    if (c.pct >= 80) advices.push({ icon: c.icon, name: c.name, type: 'strong', text: STRONG[c.id] });
+    else if (c.pct < 60) advices.push({ icon: c.icon, name: c.name, type: 'weak', text: WEAK[c.id] });
+  });
+  // 何もない場合は全カテゴリに一言
+  if (advices.length === 0) {
+    catStats.forEach(c => advices.push({ icon: c.icon, name: c.name, type: 'mid', text: STRONG[c.id] }));
+  }
+  return advices;
+}
+
+/** 卒業画面を組み立てる */
+function buildGraduationScreen() {
+  const stats  = calcAchievements();
+  const main   = getMainMessage(stats.pct, childName);
+  const advice = getCategoryAdvice(stats.cats);
+
+  // 基本情報
+  document.getElementById('grad-child-name').textContent = childName + ' さん';
+  document.getElementById('grad-year').textContent = '梅乃園幼稚園 ' + (childClass || '小梅クラス') + ' 修了';
+
+  // 円グラフ（CSS conic-gradient）
+  const circle = document.getElementById('grad-circle');
+  circle.style.setProperty('--pct', stats.pct + '%');
+  document.getElementById('grad-circle-num').textContent = stats.pct + '%';
+  document.getElementById('grad-overall-big').textContent = `${stats.masteredAll} 項目 達成！`;
+  document.getElementById('grad-overall-sub').textContent = `全 ${stats.totalAll} 項目中`;
+
+  // カテゴリ別バー
+  const barContainer = document.getElementById('grad-cat-bars');
+  barContainer.innerHTML = stats.cats.map(c => {
+    const color = c.pct >= 80 ? '#4CAF50' : c.pct >= 60 ? '#8BC34A' : c.pct >= 40 ? '#FF9800' : '#F44336';
+    return `<div class="grad-cat-row">
+      <span class="grad-cat-icon">${c.icon}</span>
+      <span class="grad-cat-name">${c.name}</span>
+      <div class="grad-cat-bar-wrap">
+        <div class="grad-cat-bar" style="width:${c.pct}%;background:${color}"></div>
+      </div>
+      <span class="grad-cat-pct">${c.pct}%</span>
+    </div>`;
+  }).join('');
+
+  // メインメッセージ
+  document.getElementById('grad-main-msg').textContent = main;
+
+  // アドバイス
+  document.getElementById('grad-advice-list').innerHTML = advice.map(a =>
+    `<div class="grad-advice-item">
+      <strong>${a.icon} ${a.name}</strong>${a.text}
+    </div>`
+  ).join('');
+
+  // フッター
+  document.getElementById('grad-footer-msg').textContent =
+    `これからの ${childName} さんのご活躍を\n心よりお祈り申し上げます。`;
+}
+</script>
+</body>
+</html>
