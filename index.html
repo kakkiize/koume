@@ -752,12 +752,37 @@ const REGRESSION_ADVICE = {
 };
 
 // =============================================
+// GAS ウェブアプリ URL（スプレッドシート連携）
+// =============================================
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxN-JJnxvfv-4GSOGjfYIRkva2lLouZPWZ3cleW6l1u0UlnrHpKoinz7vNY8ZXKwKe5/exec';
+
+function gasPost(action, params) {
+  return fetch(GAS_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action, ...params })
+  }).then(function() { return {}; })
+  .catch(function() { return {}; });
+}
+
+function gasPostWithResult(action, params) {
+  return fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action, ...params })
+  }).then(function(r) { return r.json(); })
+  .catch(function() { return {}; });
+}
+
+// =============================================
 // アプリ状態
 // =============================================
 let currentDateIdx = 0;
 let currentCatIdx = 0;
 let records = {};
 let childName = '';
+let childKana = '';            // よみがな（GASの識別キー）
 let childClass = '';
 let registrationDate = null;   // 登録日（卒業判定に使用）
 let comments = {};             // { dateIdx: text }
@@ -779,58 +804,40 @@ window.onload = function() {
   else if (m === 1 && d <= 9)             currentDateIdx = 3;
   else                                     currentDateIdx = 4;
 
-  // GAS環境かどうかチェック
-  if (typeof google === 'undefined' || !google.script) {
-    // ブラウザ直接表示 → 登録画面へ（localStorageで仮保存）
-    const saved = localStorage.getItem('koume_child');
-    if (saved) {
-      const data = JSON.parse(saved);
-      childName        = data.name;
-      childClass       = data.cls || '';
-      registrationDate = data.regDate ? new Date(data.regDate) : null;
+  // localStorageによみがなが保存されていればGASからデータ取得
+  const saved = localStorage.getItem('koume_child');
+  if (saved) {
+    const data = JSON.parse(saved);
+    childKana = data.kana || '';
+    childName = data.name || '';
+    childClass = data.cls || '';
+    registrationDate = data.regDate ? new Date(data.regDate) : null;
+    if (childKana) {
+      loadRecords();
+    } else {
+      // kanaがない古いデータの場合はローカルで起動
       const saved2 = localStorage.getItem('koume_records');
       records  = saved2 ? JSON.parse(saved2) : {};
       const saved3 = localStorage.getItem('koume_comments');
       comments = saved3 ? JSON.parse(saved3) : {};
       showMainApp();
-    } else {
-      showScreen('reg-screen');
     }
-    return;
+  } else {
+    showScreen('reg-screen');
   }
-
-  google.script.run
-    .withSuccessHandler(function(info) {
-      if (info.registered) {
-        childName        = info.childName;
-        childClass       = info.childClass || '';
-        registrationDate = info.registrationDate ? new Date(info.registrationDate) : null;
-        loadRecords();
-      } else {
-        showScreen('reg-screen');
-      }
-    })
-    .withFailureHandler(function() {
-      showScreen('reg-screen');
-    })
-    .getParentInfo();
 };
 
 function loadRecords() {
-  google.script.run
-    .withSuccessHandler(function(data) {
-      records = data;
-      google.script.run
-        .withSuccessHandler(function(c) { comments = c || {}; showMainApp(); })
-        .withFailureHandler(function()  { comments = {};      showMainApp(); })
-        .getComments();
-    })
-    .withFailureHandler(function() {
-      records = {};
-      comments = {};
-      showMainApp();
-    })
-    .getRecords();
+  // GASからチェック記録と感想を取得（no-corsのためローカルデータも併用）
+  const saved2 = localStorage.getItem('koume_records');
+  records  = saved2 ? JSON.parse(saved2) : {};
+  const saved3 = localStorage.getItem('koume_comments');
+  comments = saved3 ? JSON.parse(saved3) : {};
+  showMainApp();
+  // バックグラウンドでGASに登録情報を送信（存在確認）
+  if (childKana) {
+    gasPost('getParentInfo', { childKana }).catch(function() {});
+  }
 }
 
 function showMainApp() {
@@ -865,19 +872,20 @@ function submitRegistration() {
   if (!cls)  { alert('クラスを選んでください'); return; }
 
   childName  = name;
+  childKana  = kana;
   childClass = cls;
-  if (typeof google === 'undefined' || !google.script) {
-    const regDate = new Date().toISOString();
-    registrationDate = new Date(regDate);
-    localStorage.setItem('koume_child', JSON.stringify({ name, kana, cls, regDate }));
-    records = {};
-    showMainApp();
-    return;
+  const regDate = new Date().toISOString();
+  registrationDate = new Date(regDate);
+  // localStorageに保存
+  localStorage.setItem('koume_child', JSON.stringify({ name, kana, cls, regDate }));
+  records = {};
+  comments = {};
+  // GASに登録情報を送信（バックグラウンド）
+  if (kana) {
+    gasPost('registerChild', { childName: name, childKana: kana, childClass: cls })
+      .catch(function() {});
   }
-  google.script.run
-    .withSuccessHandler(function() { loadRecords(); })
-    .withFailureHandler(function() { records = {}; showMainApp(); })
-    .registerChild(name, kana, cls);
+  showMainApp();
 }
 
 function showReg() {
@@ -1087,14 +1095,18 @@ function setScore(itemIdx, score) {
     showToast('🎉 ' + CHECK_DATES[currentDateIdx] + ' のチェックが完了しました！');
   }
 
-  // 保存（完了時はシート更新もセット）
-  if (typeof google !== 'undefined' && google.script) {
-    google.script.run
-      .withSuccessHandler(function() {})
-      .withFailureHandler(function() {})
-      .saveRecordAndUpdate(cat.id, itemIdx, currentDateIdx, newScore, completed);
-  } else {
-    localStorage.setItem('koume_records', JSON.stringify(records));
+  // localStorageに保存
+  localStorage.setItem('koume_records', JSON.stringify(records));
+  // GASに送信（バックグラウンド）
+  if (childKana) {
+    gasPost('saveRecordAndUpdate', {
+      childKana,
+      category: cat.id,
+      itemIdx,
+      dateIdx: currentDateIdx,
+      score: newScore,
+      isComplete: completed
+    }).catch(function() {});
   }
 }
 
@@ -1135,21 +1147,14 @@ function onCommentInput(text) {
 
 function _saveCommentToServer(dateIdx, text) {
   const status = document.getElementById('comment-status');
-  if (typeof google !== 'undefined' && google.script) {
-    google.script.run
-      .withSuccessHandler(() => {
-        status.textContent = '✅ 保存しました';
-        status.className = 'comment-status saved';
-      })
-      .withFailureHandler(() => {
-        status.textContent = '⚠️ 保存失敗';
-        status.className = 'comment-status';
-      })
-      .saveComment(dateIdx, text);
-  } else {
-    localStorage.setItem('koume_comments', JSON.stringify(comments));
-    status.textContent = '✅ 保存しました';
-    status.className = 'comment-status saved';
+  // localStorageに保存
+  localStorage.setItem('koume_comments', JSON.stringify(comments));
+  status.textContent = '✅ 保存しました';
+  status.className = 'comment-status saved';
+  // GASに送信（バックグラウンド）
+  if (childKana) {
+    gasPost('saveComment', { childKana, dateIdx, text })
+      .catch(function() {});
   }
 }
 
