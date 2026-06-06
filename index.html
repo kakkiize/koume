@@ -131,6 +131,14 @@
   .date-tab.done .done-badge { display: block; font-size: 0.6rem; color: #4CAF50; line-height: 1; margin-top: 1px; }
   .date-tab .done-badge { display: none; }
 
+  /* ── 日付完了インジケーター（5つの●） ── */
+  .date-progress-row { display: flex; gap: 6px; padding: 6px 16px 8px; background: white; border-bottom: 1px solid var(--border); }
+  .date-progress-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .date-progress-dot { width: 12px; height: 12px; border-radius: 50%; background: #E0E0E0; transition: background 0.3s, transform 0.2s; }
+  .date-progress-dot.has-data { background: var(--primary); transform: scale(1.15); }
+  .date-progress-dot.complete { background: #4CAF50; transform: scale(1.2); }
+  .date-progress-name { font-size: 0.6rem; color: var(--text-light); }
+
   /* ── Prev Message ── */
   .prev-msg { padding: 8px 14px; font-size: 0.8rem; line-height: 1.5; background: #FFF8E1; border-top: 1px solid #FFE082; color: #795548; }
   .prev-msg.mastered { background: #F3E5F5; border-top-color: #CE93D8; color: #6A1B9A; }
@@ -245,6 +253,7 @@
     <div class="date-label">📅 チェックする日を選んでください</div>
     <div class="date-tabs" id="date-tabs"></div>
   </div>
+  <div class="date-progress-row" id="date-progress-row"></div>
 
   <div class="cat-tabs" id="cat-tabs"></div>
 
@@ -910,6 +919,12 @@ function isCheckDateComplete(dateIdx) {
   );
 }
 
+function hasAnyData(dateIdx) {
+  return CATEGORIES.some(cat =>
+    cat.items.some((_, i) => getScore(cat.id, i, dateIdx) > 0)
+  );
+}
+
 function renderDateTabs() {
   const el = document.getElementById('date-tabs');
   el.innerHTML = CHECK_DATES.map((d, i) => {
@@ -918,6 +933,21 @@ function renderDateTabs() {
       ${d}<span class="done-badge">✅完了</span>
     </button>`;
   }).join('');
+
+  // 5つの完了●を更新
+  const progressRow = document.getElementById('date-progress-row');
+  if (progressRow) {
+    progressRow.innerHTML = CHECK_DATES.map((d, i) => {
+      const complete = isCheckDateComplete(i);
+      const hasData  = hasAnyData(i);
+      const dotClass = complete ? 'date-progress-dot complete' : hasData ? 'date-progress-dot has-data' : 'date-progress-dot';
+      const title    = complete ? d + '：完了✅' : hasData ? d + '：入力中' : d + '：未入力';
+      return `<div class="date-progress-item">
+        <div class="${dotClass}" title="${title}"></div>
+        <span class="date-progress-name">${d}</span>
+      </div>`;
+    }).join('');
+  }
 }
 
 function renderCatTabs() {
@@ -1090,8 +1120,9 @@ function setScore(itemIdx, score) {
 
   // 完了チェック
   const completed = newScore > 0 && isCheckDateComplete(currentDateIdx);
+  // 常に日付タブと完了●を更新（チェックごとに点灯）
+  renderDateTabs();
   if (completed) {
-    renderDateTabs(); // 完了バッジを表示
     showToast('🎉 ' + CHECK_DATES[currentDateIdx] + ' のチェックが完了しました！');
   }
 
