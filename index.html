@@ -198,9 +198,42 @@
   /* ── Toast ── */
   .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: #333; color: white; padding: 10px 20px; border-radius: 20px; font-size: 0.85rem; opacity: 0; transition: all 0.3s; pointer-events: none; white-space: nowrap; z-index: 999; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── Child Switcher Modal ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 2000; align-items: flex-end; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal-sheet { background: white; border-radius: 20px 20px 0 0; width: 100%; max-width: 480px; padding: 20px 20px 36px; box-shadow: 0 -4px 20px rgba(0,0,0,0.15); animation: slideUp 0.25s ease; }
+  @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-handle { width: 40px; height: 4px; background: #ddd; border-radius: 2px; margin: 0 auto 16px; }
+  .modal-title { font-size: 0.9rem; font-weight: bold; color: var(--text-light); margin-bottom: 14px; text-align: center; }
+  .child-item { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; cursor: pointer; transition: background 0.15s; margin-bottom: 6px; border: 2px solid transparent; }
+  .child-item:active { background: var(--primary-light); }
+  .child-item.current { background: var(--primary-light); border-color: var(--primary); }
+  .child-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
+  .child-avatar.aka { background: #FFEBEE; }
+  .child-avatar.shiro { background: #F3E5F5; }
+  .child-info { flex: 1; min-width: 0; }
+  .child-item-name { font-size: 1rem; font-weight: bold; color: var(--text); }
+  .child-item-class { font-size: 0.75rem; color: var(--text-light); margin-top: 2px; }
+  .child-current-badge { font-size: 0.7rem; background: var(--primary); color: white; border-radius: 20px; padding: 2px 8px; flex-shrink: 0; }
+  .btn-add-child { width: 100%; padding: 13px; border: 2px dashed var(--border); border-radius: 12px; background: transparent; font-size: 0.9rem; color: var(--text-light); cursor: pointer; font-family: inherit; margin-top: 8px; transition: all 0.15s; }
+  .btn-add-child:active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
+  .btn-add-child:disabled { opacity: 0.4; cursor: not-allowed; }
+  .header-name-btn { background: none; border: none; font-size: 0.95rem; font-weight: bold; color: var(--text); cursor: pointer; font-family: inherit; padding: 0; display: flex; align-items: center; gap: 4px; }
+  .header-name-btn::after { content: '▾'; font-size: 0.65rem; color: var(--primary); }
 </style>
 </head>
 <body>
+
+<!-- ── Child Switcher Modal ── -->
+<div class="modal-overlay" id="child-switcher-modal" onclick="closeChildSwitcher(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">お子様を選んでください</div>
+    <div id="child-list-items"></div>
+    <button class="btn-add-child" id="btn-add-child" onclick="addNewChild()">＋ お子様を追加する（最大3人）</button>
+  </div>
+</div>
 
 <!-- ── Loading ── -->
 <div id="loading-screen">
@@ -213,9 +246,9 @@
 <div id="reg-screen" class="screen">
   <div class="reg-logo">🌸</div>
   <div class="reg-title">梅乃園幼稚園</div>
-  <div class="reg-sub">小梅クラス 成長チェックアプリ</div>
+  <div class="reg-sub" id="reg-sub-text">小梅クラス 成長チェックアプリ</div>
   <div class="reg-card">
-    <h2>お子様の情報を登録してください</h2>
+    <h2 id="reg-card-title">お子様の情報を登録してください</h2>
     <div class="form-group">
       <label>お子様のお名前（漢字）</label>
       <input type="text" id="child-name" placeholder="例：山田 太郎" />
@@ -232,7 +265,8 @@
       </div>
       <input type="hidden" id="child-class" value="" />
     </div>
-    <button class="btn-primary" onclick="submitRegistration()">登録して始める →</button>
+    <button class="btn-primary" id="btn-reg-submit" onclick="submitRegistration()">登録して始める →</button>
+    <button class="btn-primary" id="btn-reg-cancel" style="display:none;margin-top:8px;background:#888;" onclick="cancelReg()">キャンセル</button>
   </div>
 </div>
 
@@ -242,11 +276,11 @@
     <div class="header-left">
       <div class="header-logo">🌸</div>
       <div class="header-info">
-        <div class="header-name" id="header-name">読み込み中...</div>
+        <button class="header-name-btn" id="header-name" onclick="showChildSwitcher()">読み込み中...</button>
         <div class="header-class" id="header-class">梅乃園 小梅クラス</div>
       </div>
     </div>
-    <button class="btn-edit" onclick="showReg()">名前変更</button>
+    <button class="btn-edit" onclick="showChildSwitcher()">切替</button>
   </div>
 
   <div class="date-selector">
@@ -787,25 +821,31 @@ function gasPostWithResult(action, params) {
 // =============================================
 // アプリ状態
 // =============================================
+const MAX_CHILDREN = 3;
 let currentDateIdx = 0;
 let currentCatIdx = 0;
 let records = {};
-let childName = '';
-let childKana = '';            // よみがな（GASの識別キー）
-let childClass = '';
-let registrationDate = null;   // 登録日（卒業判定に使用）
 let comments = {};             // { dateIdx: text }
 let commentSaveTimer = null;
 let expandedItems = new Set();
+
+// 複数子供対応
+// children: [{name, kana, cls, regDate}, null, null]  ← 最大3人
+let children = [null, null, null];
+let currentChildIdx = 0;       // 現在表示中の子供インデックス
+let regMode = 'first';         // 'first'=初回 | 'add'=追加 | 'edit'=変更
+
+// 現在の子供の shorthand ゲッター
+function currentChild() { return children[currentChildIdx] || {}; }
 
 // =============================================
 // 初期化
 // =============================================
 window.onload = function() {
   // 現在の日付からチェック期間を自動設定
-  const now = new Date();
-  const m = now.getMonth() + 1;
-  const d = now.getDate();
+  var now = new Date();
+  var m = now.getMonth() + 1;
+  var d = now.getDate();
   if      (m < 5 || (m === 5 && d <= 6))  currentDateIdx = 0;
   else if (m < 7 || (m === 7 && d <= 20)) currentDateIdx = 0;
   else if (m < 8 || (m === 8 && d <= 30)) currentDateIdx = 1;
@@ -813,50 +853,54 @@ window.onload = function() {
   else if (m === 1 && d <= 9)             currentDateIdx = 3;
   else                                     currentDateIdx = 4;
 
-  // localStorageによみがなが保存されていればGASからデータ取得
-  const saved = localStorage.getItem('koume_child');
-  if (saved) {
-    const data = JSON.parse(saved);
-    childKana = data.kana || '';
-    childName = data.name || '';
-    childClass = data.cls || '';
-    registrationDate = data.regDate ? new Date(data.regDate) : null;
-    if (childKana) {
-      loadRecords();
-    } else {
-      // kanaがない古いデータの場合はローカルで起動
-      const saved2 = localStorage.getItem('koume_records');
-      records  = saved2 ? JSON.parse(saved2) : {};
-      const saved3 = localStorage.getItem('koume_comments');
-      comments = saved3 ? JSON.parse(saved3) : {};
-      showMainApp();
-    }
+  // 旧データ（koume_child）の移行
+  var oldSaved = localStorage.getItem('koume_child');
+  if (oldSaved && !localStorage.getItem('koume_children')) {
+    var old = JSON.parse(oldSaved);
+    var migrated = [{ name: old.name || '', kana: old.kana || '', cls: old.cls || '', regDate: old.regDate || new Date().toISOString() }, null, null];
+    localStorage.setItem('koume_children', JSON.stringify(migrated));
+    var oldRec = localStorage.getItem('koume_records');
+    if (oldRec) localStorage.setItem('koume_records_0', oldRec);
+    var oldCom = localStorage.getItem('koume_comments');
+    if (oldCom) localStorage.setItem('koume_comments_0', oldCom);
+    localStorage.removeItem('koume_child');
+  }
+
+  // 複数子供データ読み込み
+  var savedChildren = localStorage.getItem('koume_children');
+  if (savedChildren) {
+    children = JSON.parse(savedChildren);
+    currentChildIdx = parseInt(localStorage.getItem('koume_currentChild') || '0', 10);
+    if (!children[currentChildIdx]) currentChildIdx = 0;
+    loadRecords();
   } else {
+    regMode = 'first';
+    document.getElementById('reg-card-title').textContent = 'お子様の情報を登録してください';
+    document.getElementById('reg-sub-text').textContent   = '小梅クラス 成長チェックアプリ';
+    document.getElementById('btn-reg-submit').textContent = '登録して始める →';
+    document.getElementById('btn-reg-cancel').style.display = 'none';
     showScreen('reg-screen');
   }
 };
 
 function loadRecords() {
-  // GASからチェック記録と感想を取得（no-corsのためローカルデータも併用）
-  const saved2 = localStorage.getItem('koume_records');
-  records  = saved2 ? JSON.parse(saved2) : {};
-  const saved3 = localStorage.getItem('koume_comments');
-  comments = saved3 ? JSON.parse(saved3) : {};
+  var savedRec = localStorage.getItem('koume_records_' + currentChildIdx);
+  records  = savedRec  ? JSON.parse(savedRec)  : {};
+  var savedCom = localStorage.getItem('koume_comments_' + currentChildIdx);
+  comments = savedCom ? JSON.parse(savedCom) : {};
   showMainApp();
-  // バックグラウンドでGASに登録情報を送信（存在確認）
-  if (childKana) {
-    gasPost('getParentInfo', { childKana }).catch(function() {});
-  }
 }
 
 function showMainApp() {
-  if (registrationDate && isGraduated(registrationDate)) {
+  var child = currentChild();
+  var regDate = child.regDate ? new Date(child.regDate) : null;
+  if (regDate && isGraduated(regDate)) {
     buildGraduationScreen();
     showScreen('graduation-screen');
     return;
   }
-  document.getElementById('header-name').textContent = childName + ' さん';
-  document.getElementById('header-class').textContent = '梅乃園 ' + (childClass || '小梅クラス');
+  document.getElementById('header-name').textContent = (child.name || '') + ' さん';
+  document.getElementById('header-class').textContent = '梅乃園 ' + (child.cls || '小梅クラス');
   renderDateTabs();
   renderCatTabs();
   renderItems();
@@ -874,33 +918,119 @@ function selectClass(cls) {
 }
 
 function submitRegistration() {
-  const name = document.getElementById('child-name').value.trim();
-  const kana = document.getElementById('child-kana').value.trim();
-  const cls  = document.getElementById('child-class').value;
+  var name = document.getElementById('child-name').value.trim();
+  var kana = document.getElementById('child-kana').value.trim();
+  var cls  = document.getElementById('child-class').value;
   if (!name) { alert('お子様のお名前を入力してください'); return; }
   if (!cls)  { alert('クラスを選んでください'); return; }
 
-  childName  = name;
-  childKana  = kana;
-  childClass = cls;
-  const regDate = new Date().toISOString();
-  registrationDate = new Date(regDate);
-  // localStorageに保存
-  localStorage.setItem('koume_child', JSON.stringify({ name, kana, cls, regDate }));
-  records = {};
-  comments = {};
-  // GASに登録情報を送信（バックグラウンド）
-  if (kana) {
-    gasPost('registerChild', { childName: name, childKana: kana, childClass: cls })
-      .catch(function() {});
+  if (regMode === 'first' || regMode === 'add') {
+    // 新規登録：空きスロットを探す
+    var targetIdx = regMode === 'add'
+      ? children.findIndex(function(c) { return c === null; })
+      : 0;
+    if (targetIdx < 0) { alert('登録できるお子様は最大3人です'); return; }
+    var regDate = new Date().toISOString();
+    children[targetIdx] = { name: name, kana: kana, cls: cls, regDate: regDate };
+    currentChildIdx = targetIdx;
+    // 新しい子供のデータは空で初期化
+    records = {};
+    comments = {};
+    localStorage.setItem('koume_records_' + targetIdx, JSON.stringify({}));
+    localStorage.setItem('koume_comments_' + targetIdx, JSON.stringify({}));
+  } else {
+    // 編集モード：現在の子供を更新（regDateはそのまま保持）
+    var existing = children[currentChildIdx] || {};
+    children[currentChildIdx] = { name: name, kana: kana, cls: cls, regDate: existing.regDate || new Date().toISOString() };
   }
+
+  localStorage.setItem('koume_children', JSON.stringify(children));
+  localStorage.setItem('koume_currentChild', String(currentChildIdx));
+
+  // GASに登録情報を送信（バックグラウンド）
+  gasPost('registerChild', { childIdx: currentChildIdx, childName: name, childKana: kana, childClass: cls })
+    .catch(function() {});
+
   showMainApp();
 }
 
 function showReg() {
-  document.getElementById('child-name').value = childName;
-  if (childClass) selectClass(childClass);
+  regMode = 'edit';
+  var child = currentChild();
+  document.getElementById('child-name').value = child.name || '';
+  document.getElementById('child-kana').value = child.kana || '';
+  document.getElementById('child-class').value = '';
+  document.getElementById('btn-aka').classList.remove('selected');
+  document.getElementById('btn-shiro').classList.remove('selected');
+  if (child.cls) selectClass(child.cls);
+  document.getElementById('reg-card-title').textContent = 'お子様の情報を変更';
+  document.getElementById('reg-sub-text').textContent   = child.name ? child.name + ' さんの情報' : '情報を変更してください';
+  document.getElementById('btn-reg-submit').textContent = '変更を保存';
+  document.getElementById('btn-reg-cancel').style.display = '';
   showScreen('reg-screen');
+}
+
+function addNewChild() {
+  var count = children.filter(function(c) { return c !== null; }).length;
+  if (count >= MAX_CHILDREN) { alert('登録できるお子様は最大3人です'); return; }
+  regMode = 'add';
+  document.getElementById('child-name').value = '';
+  document.getElementById('child-kana').value = '';
+  document.getElementById('child-class').value = '';
+  document.getElementById('btn-aka').classList.remove('selected');
+  document.getElementById('btn-shiro').classList.remove('selected');
+  document.getElementById('reg-card-title').textContent = 'お子様を追加する';
+  document.getElementById('reg-sub-text').textContent   = '2人目・3人目のお子様を登録';
+  document.getElementById('btn-reg-submit').textContent = '追加して始める →';
+  document.getElementById('btn-reg-cancel').style.display = '';
+  closeChildSwitcher();
+  showScreen('reg-screen');
+}
+
+function cancelReg() {
+  document.getElementById('btn-reg-cancel').style.display = 'none';
+  // 登録済みの子供がいれば戻る
+  var hasChild = children.some(function(c) { return c !== null; });
+  if (hasChild) showMainApp();
+  else showScreen('reg-screen'); // 初回のみは戻れない
+}
+
+// =============================================
+// 子供切替モーダル
+// =============================================
+function showChildSwitcher() {
+  var list = document.getElementById('child-list-items');
+  var count = children.filter(function(c) { return c !== null; }).length;
+  list.innerHTML = children.map(function(child, idx) {
+    if (!child) return '';
+    var isCurrent = idx === currentChildIdx;
+    var avatarCls = child.cls === '赤小梅' ? 'aka' : 'shiro';
+    var avatarIcon = child.cls === '赤小梅' ? '🔴' : '⚪';
+    return '<div class="child-item' + (isCurrent ? ' current' : '') + '" onclick="switchChild(' + idx + ')">' +
+      '<div class="child-avatar ' + avatarCls + '">' + avatarIcon + '</div>' +
+      '<div class="child-info">' +
+        '<div class="child-item-name">' + child.name + ' さん</div>' +
+        '<div class="child-item-class">梅乃園 ' + (child.cls || '小梅クラス') + '</div>' +
+      '</div>' +
+      (isCurrent ? '<div class="child-current-badge">表示中</div>' : '') +
+      '</div>';
+  }).join('');
+  // 追加ボタンの活性/非活性
+  document.getElementById('btn-add-child').disabled = count >= MAX_CHILDREN;
+  document.getElementById('child-switcher-modal').classList.add('open');
+}
+
+function closeChildSwitcher(e) {
+  if (e && e.target !== document.getElementById('child-switcher-modal')) return;
+  document.getElementById('child-switcher-modal').classList.remove('open');
+}
+
+function switchChild(idx) {
+  if (idx === currentChildIdx) { closeChildSwitcher(); return; }
+  currentChildIdx = idx;
+  localStorage.setItem('koume_currentChild', String(currentChildIdx));
+  closeChildSwitcher();
+  loadRecords();
 }
 
 
@@ -1127,18 +1257,16 @@ function setScore(itemIdx, score) {
   }
 
   // localStorageに保存
-  localStorage.setItem('koume_records', JSON.stringify(records));
+  localStorage.setItem('koume_records_' + currentChildIdx, JSON.stringify(records));
   // GASに送信（バックグラウンド）
-  if (childKana) {
-    gasPost('saveRecordAndUpdate', {
-      childKana,
-      category: cat.id,
-      itemIdx,
-      dateIdx: currentDateIdx,
-      score: newScore,
-      isComplete: completed
-    }).catch(function() {});
-  }
+  gasPost('saveRecordAndUpdate', {
+    childIdx: currentChildIdx,
+    category: cat.id,
+    itemIdx: itemIdx,
+    dateIdx: currentDateIdx,
+    score: newScore,
+    isComplete: completed
+  }).catch(function() {});
 }
 
 function getScore(catId, itemIdx, dateIdx) {
@@ -1177,16 +1305,14 @@ function onCommentInput(text) {
 }
 
 function _saveCommentToServer(dateIdx, text) {
-  const status = document.getElementById('comment-status');
+  var status = document.getElementById('comment-status');
   // localStorageに保存
-  localStorage.setItem('koume_comments', JSON.stringify(comments));
+  localStorage.setItem('koume_comments_' + currentChildIdx, JSON.stringify(comments));
   status.textContent = '✅ 保存しました';
   status.className = 'comment-status saved';
   // GASに送信（バックグラウンド）
-  if (childKana) {
-    gasPost('saveComment', { childKana, dateIdx, text })
-      .catch(function() {});
-  }
+  gasPost('saveComment', { childIdx: currentChildIdx, dateIdx: dateIdx, text: text })
+    .catch(function() {});
 }
 
 // =============================================
@@ -1264,13 +1390,14 @@ function getCategoryAdvice(catStats) {
 
 /** 卒業画面を組み立てる */
 function buildGraduationScreen() {
-  const stats  = calcAchievements();
-  const main   = getMainMessage(stats.pct, childName);
-  const advice = getCategoryAdvice(stats.cats);
+  var child  = currentChild();
+  var stats  = calcAchievements();
+  var main   = getMainMessage(stats.pct, child.name || '');
+  var advice = getCategoryAdvice(stats.cats);
 
   // 基本情報
-  document.getElementById('grad-child-name').textContent = childName + ' さん';
-  document.getElementById('grad-year').textContent = '梅乃園幼稚園 ' + (childClass || '小梅クラス') + ' 修了';
+  document.getElementById('grad-child-name').textContent = (child.name || '') + ' さん';
+  document.getElementById('grad-year').textContent = '梅乃園幼稚園 ' + (child.cls || '小梅クラス') + ' 修了';
 
   // 円グラフ（CSS conic-gradient）
   const circle = document.getElementById('grad-circle');
@@ -1305,7 +1432,7 @@ function buildGraduationScreen() {
 
   // フッター
   document.getElementById('grad-footer-msg').textContent =
-    `これからの ${childName} さんのご活躍を\n心よりお祈り申し上げます。`;
+    'これからの ' + (child.name || '') + ' さんのご活躍を\n心よりお祈り申し上げます。';
 }
 </script>
 </body>
