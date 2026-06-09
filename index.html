@@ -40,6 +40,10 @@
   .reg-sub { text-align: center; font-size: 0.85rem; color: var(--text-light); margin-bottom: 32px; }
   .reg-card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
   .reg-card h2 { font-size: 1rem; font-weight: bold; margin-bottom: 16px; color: var(--text); }
+  .child-slot-card { background: white; border-radius: 16px; padding: 18px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); margin-bottom: 12px; }
+  .child-slot-label { font-size: 0.8rem; font-weight: bold; color: var(--primary); margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+  .child-slot-optional { font-size: 0.72rem; color: var(--text-light); font-weight: normal; }
+  .reg-actions { margin-top: 4px; }
   .form-group { margin-bottom: 16px; }
   .form-group label { display: block; font-size: 0.85rem; color: var(--text-light); margin-bottom: 6px; }
   .form-group input { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 1rem; font-family: inherit; outline: none; transition: border-color 0.2s; }
@@ -195,6 +199,29 @@
   .grad-footer-msg { font-size: 0.85rem; color: #888; line-height: 1.6; margin-bottom: 8px; }
   .grad-footer-sign { font-size: 0.8rem; color: #bbb; }
 
+  /* ── PDF Export Button ── */
+  .btn-pdf-export { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 14px 20px; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 14px; font-size: 1rem; font-weight: bold; font-family: inherit; cursor: pointer; box-shadow: 0 3px 12px rgba(232,115,58,0.35); transition: background 0.2s; width: calc(100% - 28px); }
+  .btn-pdf-export:active { background: var(--primary-dark); }
+
+  /* ── 印刷用スタイル ── */
+  @media print {
+    body { background: white !important; }
+    .modal-overlay, #loading-screen, #reg-screen, #main-screen, .toast { display: none !important; }
+    #graduation-screen { display: block !important; background: white !important; padding: 0 !important; min-height: unset !important; }
+    .btn-pdf-export { display: none !important; }
+    .grad-hero { padding: 20px 16px 16px !important; }
+    .grad-flowers { font-size: 1.6rem !important; }
+    .grad-title { font-size: 1rem !important; }
+    .grad-child { font-size: 1.4rem !important; }
+    .grad-section { box-shadow: none !important; border: 1px solid #eee !important; break-inside: avoid; margin: 0 10px 8px !important; padding: 12px !important; }
+    .grad-cat-bar-wrap { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .grad-cat-bar { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .grad-circle { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .grad-footer { padding: 8px 16px 0 !important; }
+    .grad-advice-item { break-inside: avoid; }
+    @page { margin: 12mm; }
+  }
+
   /* ── Toast ── */
   .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: #333; color: white; padding: 10px 20px; border-radius: 20px; font-size: 0.85rem; opacity: 0; transition: all 0.3s; pointer-events: none; white-space: nowrap; z-index: 999; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -219,19 +246,30 @@
   .btn-add-child { width: 100%; padding: 13px; border: 2px dashed var(--border); border-radius: 12px; background: transparent; font-size: 0.9rem; color: var(--text-light); cursor: pointer; font-family: inherit; margin-top: 8px; transition: all 0.15s; }
   .btn-add-child:active { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
   .btn-add-child:disabled { opacity: 0.4; cursor: not-allowed; }
-  .header-name-btn { background: none; border: none; font-size: 0.95rem; font-weight: bold; color: var(--text); cursor: pointer; font-family: inherit; padding: 0; display: flex; align-items: center; gap: 4px; }
-  .header-name-btn::after { content: '▾'; font-size: 0.65rem; color: var(--primary); }
+
+  /* ── Child Tabs (header) ── */
+  .child-tabs-row { display: none; overflow-x: auto; background: white; border-bottom: 2px solid var(--border); }
+  .child-tabs-row::-webkit-scrollbar { display: none; }
+  .child-tabs-inner { display: flex; }
+  .child-tab { flex: 1; min-width: 64px; padding: 9px 6px 7px; font-size: 0.82rem; text-align: center; cursor: pointer; border: none; border-bottom: 3px solid transparent; background: none; color: var(--text-light); font-family: inherit; white-space: nowrap; transition: all 0.15s; }
+  .child-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: bold; }
+  .child-tab-add { padding: 9px 12px 7px; font-size: 1rem; color: var(--primary); border: none; background: none; cursor: pointer; font-family: inherit; border-bottom: 3px solid transparent; }
+  .child-tab-add:active { background: var(--primary-light); }
+
+  /* ── Per-item child mini tabs ── */
+  .item-child-tabs { display: flex; gap: 6px; padding: 8px 14px 0; flex-wrap: wrap; }
+  .item-child-tab { padding: 4px 12px; font-size: 0.72rem; border-radius: 20px; cursor: pointer; border: 1.5px solid var(--border); background: white; color: var(--text-light); font-family: inherit; transition: all 0.12s; }
+  .item-child-tab.active { background: var(--primary); border-color: var(--primary); color: white; font-weight: bold; }
 </style>
 </head>
 <body>
 
-<!-- ── Child Switcher Modal ── -->
+<!-- ── Add Child Modal (追加のみ) ── -->
 <div class="modal-overlay" id="child-switcher-modal" onclick="closeChildSwitcher(event)">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
-    <div class="modal-title">お子様を選んでください</div>
-    <div id="child-list-items"></div>
-    <button class="btn-add-child" id="btn-add-child" onclick="addNewChild()">＋ お子様を追加する（最大3人）</button>
+    <div class="modal-title">お子様を追加する</div>
+    <button class="btn-add-child" id="btn-add-child" onclick="addNewChild()">＋ 新しいお子様を登録（最大4人）</button>
   </div>
 </div>
 
@@ -247,24 +285,49 @@
   <div class="reg-logo">🌸</div>
   <div class="reg-title">梅乃園幼稚園</div>
   <div class="reg-sub" id="reg-sub-text">小梅クラス 成長チェックアプリ</div>
-  <div class="reg-card">
-    <h2 id="reg-card-title">お子様の情報を登録してください</h2>
-    <div class="form-group">
-      <label>お子様のお名前（漢字）</label>
-      <input type="text" id="child-name" placeholder="例：山田 太郎" />
+
+  <!-- スロット 0〜3 -->
+  <div class="child-slot-card" id="slot-card-0">
+    <div class="child-slot-label">👶 1人目 <span class="child-slot-optional">（必須）</span></div>
+    <div class="form-group"><label>お名前（漢字）</label><input type="text" id="child-name-0" placeholder="例：山田 太郎" /></div>
+    <div class="form-group"><label>よみがな</label><input type="text" id="child-kana-0" placeholder="例：やまだ たろう" /></div>
+    <div class="form-group"><label>クラス</label>
+      <div class="class-btns"><button class="class-btn" id="btn-aka-0" onclick="selectClass(0,'赤小梅')">🔴 赤小梅</button><button class="class-btn" id="btn-shiro-0" onclick="selectClass(0,'白小梅')">⚪ 白小梅</button></div>
+      <input type="hidden" id="child-class-0" value="" />
     </div>
-    <div class="form-group">
-      <label>よみがな</label>
-      <input type="text" id="child-kana" placeholder="例：やまだ たろう" />
+  </div>
+
+  <div class="child-slot-card" id="slot-card-1">
+    <div class="child-slot-label">👶 2人目 <span class="child-slot-optional">（任意）</span></div>
+    <div class="form-group"><label>お名前（漢字）</label><input type="text" id="child-name-1" placeholder="例：山田 花子" /></div>
+    <div class="form-group"><label>よみがな</label><input type="text" id="child-kana-1" placeholder="例：やまだ はなこ" /></div>
+    <div class="form-group"><label>クラス</label>
+      <div class="class-btns"><button class="class-btn" id="btn-aka-1" onclick="selectClass(1,'赤小梅')">🔴 赤小梅</button><button class="class-btn" id="btn-shiro-1" onclick="selectClass(1,'白小梅')">⚪ 白小梅</button></div>
+      <input type="hidden" id="child-class-1" value="" />
     </div>
-    <div class="form-group">
-      <label>クラス</label>
-      <div class="class-btns">
-        <button class="class-btn" id="btn-aka" onclick="selectClass('赤小梅')">🔴 赤小梅</button>
-        <button class="class-btn" id="btn-shiro" onclick="selectClass('白小梅')">⚪ 白小梅</button>
-      </div>
-      <input type="hidden" id="child-class" value="" />
+  </div>
+
+  <div class="child-slot-card" id="slot-card-2">
+    <div class="child-slot-label">👶 3人目 <span class="child-slot-optional">（任意）</span></div>
+    <div class="form-group"><label>お名前（漢字）</label><input type="text" id="child-name-2" placeholder="例：山田 次郎" /></div>
+    <div class="form-group"><label>よみがな</label><input type="text" id="child-kana-2" placeholder="例：やまだ じろう" /></div>
+    <div class="form-group"><label>クラス</label>
+      <div class="class-btns"><button class="class-btn" id="btn-aka-2" onclick="selectClass(2,'赤小梅')">🔴 赤小梅</button><button class="class-btn" id="btn-shiro-2" onclick="selectClass(2,'白小梅')">⚪ 白小梅</button></div>
+      <input type="hidden" id="child-class-2" value="" />
     </div>
+  </div>
+
+  <div class="child-slot-card" id="slot-card-3">
+    <div class="child-slot-label">👶 4人目 <span class="child-slot-optional">（任意）</span></div>
+    <div class="form-group"><label>お名前（漢字）</label><input type="text" id="child-name-3" placeholder="例：山田 三郎" /></div>
+    <div class="form-group"><label>よみがな</label><input type="text" id="child-kana-3" placeholder="例：やまだ さぶろう" /></div>
+    <div class="form-group"><label>クラス</label>
+      <div class="class-btns"><button class="class-btn" id="btn-aka-3" onclick="selectClass(3,'赤小梅')">🔴 赤小梅</button><button class="class-btn" id="btn-shiro-3" onclick="selectClass(3,'白小梅')">⚪ 白小梅</button></div>
+      <input type="hidden" id="child-class-3" value="" />
+    </div>
+  </div>
+
+  <div class="reg-actions">
     <button class="btn-primary" id="btn-reg-submit" onclick="submitRegistration()">登録して始める →</button>
     <button class="btn-primary" id="btn-reg-cancel" style="display:none;margin-top:8px;background:#888;" onclick="cancelReg()">キャンセル</button>
   </div>
@@ -276,12 +339,13 @@
     <div class="header-left">
       <div class="header-logo">🌸</div>
       <div class="header-info">
-        <button class="header-name-btn" id="header-name" onclick="showChildSwitcher()">読み込み中...</button>
+        <div class="header-name" id="header-name">読み込み中...</div>
         <div class="header-class" id="header-class">梅乃園 小梅クラス</div>
       </div>
     </div>
-    <button class="btn-edit" onclick="showChildSwitcher()">切替</button>
+    <button class="btn-edit" onclick="showReg()">編集</button>
   </div>
+  <div class="child-tabs-row" id="child-tabs-row"><div class="child-tabs-inner" id="child-tabs-inner"></div></div>
 
   <div class="date-selector">
     <div class="date-label">📅 チェックする日を選んでください</div>
@@ -357,6 +421,10 @@
     <div class="grad-footer-msg" id="grad-footer-msg"></div>
     <div class="grad-footer-sign">梅乃園幼稚園</div>
   </div>
+
+  <button class="btn-pdf-export" onclick="printGraduation()">
+    📄 この記録をPDFで保存する
+  </button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -821,7 +889,7 @@ function gasPostWithResult(action, params) {
 // =============================================
 // アプリ状態
 // =============================================
-const MAX_CHILDREN = 3;
+const MAX_CHILDREN = 4;
 let currentDateIdx = 0;
 let currentCatIdx = 0;
 let records = {};
@@ -830,8 +898,8 @@ let commentSaveTimer = null;
 let expandedItems = new Set();
 
 // 複数子供対応
-// children: [{name, kana, cls, regDate}, null, null]  ← 最大3人
-let children = [null, null, null];
+// children: [{name, kana, cls, regDate}, ...]  ← 最大4人
+let children = [null, null, null, null];
 let currentChildIdx = 0;       // 現在表示中の子供インデックス
 let regMode = 'first';         // 'first'=初回 | 'add'=追加 | 'edit'=変更
 
@@ -857,7 +925,7 @@ window.onload = function() {
   var oldSaved = localStorage.getItem('koume_child');
   if (oldSaved && !localStorage.getItem('koume_children')) {
     var old = JSON.parse(oldSaved);
-    var migrated = [{ name: old.name || '', kana: old.kana || '', cls: old.cls || '', regDate: old.regDate || new Date().toISOString() }, null, null];
+    var migrated = [{ name: old.name || '', kana: old.kana || '', cls: old.cls || '', regDate: old.regDate || new Date().toISOString() }, null, null, null];
     localStorage.setItem('koume_children', JSON.stringify(migrated));
     var oldRec = localStorage.getItem('koume_records');
     if (oldRec) localStorage.setItem('koume_records_0', oldRec);
@@ -875,7 +943,6 @@ window.onload = function() {
     loadRecords();
   } else {
     regMode = 'first';
-    document.getElementById('reg-card-title').textContent = 'お子様の情報を登録してください';
     document.getElementById('reg-sub-text').textContent   = '小梅クラス 成長チェックアプリ';
     document.getElementById('btn-reg-submit').textContent = '登録して始める →';
     document.getElementById('btn-reg-cancel').style.display = 'none';
@@ -901,6 +968,7 @@ function showMainApp() {
   }
   document.getElementById('header-name').textContent = (child.name || '') + ' さん';
   document.getElementById('header-class').textContent = '梅乃園 ' + (child.cls || '小梅クラス');
+  renderChildTabs();
   renderDateTabs();
   renderCatTabs();
   renderItems();
@@ -908,91 +976,104 @@ function showMainApp() {
   showScreen('main-screen');
 }
 
+function renderChildTabs() {
+  var row = document.getElementById('child-tabs-row');
+  var inner = document.getElementById('child-tabs-inner');
+  if (!row || !inner) return;
+  var registered = children.filter(function(c) { return c !== null; });
+  if (registered.length <= 1) { row.style.display = 'none'; return; }
+  row.style.display = '';
+  var html = children.map(function(child, idx) {
+    if (!child) return '';
+    return '<button class="child-tab' + (idx === currentChildIdx ? ' active' : '') + '" onclick="switchChild(' + idx + ', null)">' +
+      child.name + '</button>';
+  }).join('');
+  // ＋ボタン（MAX未満のとき）
+  if (registered.length < MAX_CHILDREN) {
+    html += '<button class="child-tab-add" onclick="addNewChild()" title="お子様を追加">＋</button>';
+  }
+  inner.innerHTML = html;
+}
+
 // =============================================
-// 登録
+// 登録（4スロット対応）
 // =============================================
-function selectClass(cls) {
-  document.getElementById('child-class').value = cls;
-  document.getElementById('btn-aka').classList.toggle('selected', cls === '赤小梅');
-  document.getElementById('btn-shiro').classList.toggle('selected', cls === '白小梅');
+function selectClass(slotIdx, cls) {
+  document.getElementById('child-class-' + slotIdx).value = cls;
+  document.getElementById('btn-aka-'   + slotIdx).classList.toggle('selected', cls === '赤小梅');
+  document.getElementById('btn-shiro-' + slotIdx).classList.toggle('selected', cls === '白小梅');
 }
 
 function submitRegistration() {
-  var name = document.getElementById('child-name').value.trim();
-  var kana = document.getElementById('child-kana').value.trim();
-  var cls  = document.getElementById('child-class').value;
-  if (!name) { alert('お子様のお名前を入力してください'); return; }
-  if (!cls)  { alert('クラスを選んでください'); return; }
+  var newChildren = [null, null, null, null];
+  for (var slot = 0; slot < MAX_CHILDREN; slot++) {
+    var name = document.getElementById('child-name-' + slot).value.trim();
+    var kana = document.getElementById('child-kana-' + slot).value.trim();
+    var cls  = document.getElementById('child-class-' + slot).value;
+    if (!name) {
+      if (slot === 0) { alert('1人目のお名前を入力してください'); return; }
+      continue; // 任意スロットは空欄OK
+    }
+    if (!cls) { alert((slot + 1) + '人目のクラスを選んでください'); return; }
+    var existingRegDate = (children[slot] && children[slot].regDate) ? children[slot].regDate : new Date().toISOString();
+    newChildren[slot] = { name: name, kana: kana, cls: cls, regDate: existingRegDate };
+  }
+  children = newChildren;
+  localStorage.setItem('koume_children', JSON.stringify(children));
 
-  if (regMode === 'first' || regMode === 'add') {
-    // 新規登録：空きスロットを探す
-    var targetIdx = regMode === 'add'
-      ? children.findIndex(function(c) { return c === null; })
-      : 0;
-    if (targetIdx < 0) { alert('登録できるお子様は最大3人です'); return; }
-    var regDate = new Date().toISOString();
-    children[targetIdx] = { name: name, kana: kana, cls: cls, regDate: regDate };
-    currentChildIdx = targetIdx;
-    // 新しい子供のデータは空で初期化
-    records = {};
-    comments = {};
-    localStorage.setItem('koume_records_' + targetIdx, JSON.stringify({}));
-    localStorage.setItem('koume_comments_' + targetIdx, JSON.stringify({}));
-  } else {
-    // 編集モード：現在の子供を更新（regDateはそのまま保持）
-    var existing = children[currentChildIdx] || {};
-    children[currentChildIdx] = { name: name, kana: kana, cls: cls, regDate: existing.regDate || new Date().toISOString() };
+  // 各スロットのlocalStorageを初期化（新規スロットのみ）
+  for (var i = 0; i < MAX_CHILDREN; i++) {
+    if (children[i] && !localStorage.getItem('koume_records_' + i)) {
+      localStorage.setItem('koume_records_' + i, JSON.stringify({}));
+      localStorage.setItem('koume_comments_' + i, JSON.stringify({}));
+    }
   }
 
-  localStorage.setItem('koume_children', JSON.stringify(children));
+  // currentChildIdxが無効になった場合は最初の有効スロットへ
+  if (!children[currentChildIdx]) {
+    currentChildIdx = children.findIndex(function(c) { return c !== null; }) || 0;
+  }
   localStorage.setItem('koume_currentChild', String(currentChildIdx));
 
-  // GASに登録情報を送信（バックグラウンド）
-  gasPost('registerChild', { childIdx: currentChildIdx, childName: name, childKana: kana, childClass: cls })
-    .catch(function() {});
+  var savedRec = localStorage.getItem('koume_records_' + currentChildIdx);
+  records  = savedRec  ? JSON.parse(savedRec)  : {};
+  var savedCom = localStorage.getItem('koume_comments_' + currentChildIdx);
+  comments = savedCom ? JSON.parse(savedCom) : {};
 
+  // GASに登録（全スロット）
+  for (var j = 0; j < MAX_CHILDREN; j++) {
+    if (children[j]) {
+      gasPost('registerChild', { childIdx: j, childName: children[j].name, childKana: children[j].kana, childClass: children[j].cls }).catch(function(){});
+    }
+  }
   showMainApp();
 }
 
 function showReg() {
-  regMode = 'edit';
-  var child = currentChild();
-  document.getElementById('child-name').value = child.name || '';
-  document.getElementById('child-kana').value = child.kana || '';
-  document.getElementById('child-class').value = '';
-  document.getElementById('btn-aka').classList.remove('selected');
-  document.getElementById('btn-shiro').classList.remove('selected');
-  if (child.cls) selectClass(child.cls);
-  document.getElementById('reg-card-title').textContent = 'お子様の情報を変更';
-  document.getElementById('reg-sub-text').textContent   = child.name ? child.name + ' さんの情報' : '情報を変更してください';
+  // 全スロットに既存データをセット
+  for (var slot = 0; slot < MAX_CHILDREN; slot++) {
+    var child = children[slot];
+    document.getElementById('child-name-' + slot).value = child ? (child.name || '') : '';
+    document.getElementById('child-kana-' + slot).value = child ? (child.kana || '') : '';
+    document.getElementById('child-class-' + slot).value = '';
+    document.getElementById('btn-aka-'   + slot).classList.remove('selected');
+    document.getElementById('btn-shiro-' + slot).classList.remove('selected');
+    if (child && child.cls) selectClass(slot, child.cls);
+  }
+  document.getElementById('reg-sub-text').textContent   = 'お子様の情報を変更・追加できます';
   document.getElementById('btn-reg-submit').textContent = '変更を保存';
   document.getElementById('btn-reg-cancel').style.display = '';
   showScreen('reg-screen');
 }
 
 function addNewChild() {
-  var count = children.filter(function(c) { return c !== null; }).length;
-  if (count >= MAX_CHILDREN) { alert('登録できるお子様は最大3人です'); return; }
-  regMode = 'add';
-  document.getElementById('child-name').value = '';
-  document.getElementById('child-kana').value = '';
-  document.getElementById('child-class').value = '';
-  document.getElementById('btn-aka').classList.remove('selected');
-  document.getElementById('btn-shiro').classList.remove('selected');
-  document.getElementById('reg-card-title').textContent = 'お子様を追加する';
-  document.getElementById('reg-sub-text').textContent   = '2人目・3人目のお子様を登録';
-  document.getElementById('btn-reg-submit').textContent = '追加して始める →';
-  document.getElementById('btn-reg-cancel').style.display = '';
-  closeChildSwitcher();
-  showScreen('reg-screen');
+  showReg(); // 全スロット画面を開く（空きスロットに入力してもらう）
 }
 
 function cancelReg() {
   document.getElementById('btn-reg-cancel').style.display = 'none';
-  // 登録済みの子供がいれば戻る
   var hasChild = children.some(function(c) { return c !== null; });
   if (hasChild) showMainApp();
-  else showScreen('reg-screen'); // 初回のみは戻れない
 }
 
 // =============================================
@@ -1025,12 +1106,28 @@ function closeChildSwitcher(e) {
   document.getElementById('child-switcher-modal').classList.remove('open');
 }
 
-function switchChild(idx) {
-  if (idx === currentChildIdx) { closeChildSwitcher(); return; }
+function switchChild(idx, scrollToCard) {
+  if (idx === currentChildIdx) return;
   currentChildIdx = idx;
   localStorage.setItem('koume_currentChild', String(currentChildIdx));
-  closeChildSwitcher();
-  loadRecords();
+  var savedRec = localStorage.getItem('koume_records_' + currentChildIdx);
+  records  = savedRec  ? JSON.parse(savedRec)  : {};
+  var savedCom = localStorage.getItem('koume_comments_' + currentChildIdx);
+  comments = savedCom ? JSON.parse(savedCom) : {};
+  var child = currentChild();
+  document.getElementById('header-name').textContent = (child.name || '') + ' さん';
+  document.getElementById('header-class').textContent = '梅乃園 ' + (child.cls || '小梅クラス');
+  renderChildTabs();
+  renderDateTabs();
+  renderCatTabs();
+  renderItems();
+  renderComment();
+  if (scrollToCard != null) {
+    setTimeout(function() {
+      var card = document.getElementById('card-' + scrollToCard);
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 60);
+  }
 }
 
 
@@ -1158,8 +1255,21 @@ function renderItems() {
         <div class="advice-text">${adviceText}</div>
       </div>` : '');
 
+    // 複数子供ミニタブ（2人以上登録時のみ表示）
+    var registeredCount = children.filter(function(c) { return c !== null; }).length;
+    var itemChildTabsHtml = '';
+    if (registeredCount > 1) {
+      var tabButtons = children.map(function(ch, idx) {
+        if (!ch) return '';
+        return '<button class="item-child-tab' + (idx === currentChildIdx ? ' active' : '') +
+          '" onclick="switchChild(' + idx + ', ' + i + ')">' + ch.name + '</button>';
+      }).join('');
+      itemChildTabsHtml = '<div class="item-child-tabs">' + tabButtons + '</div>';
+    }
+
     return `
       <div class="item-card${isMastered ? ' is-mastered' : ''}" id="card-${i}">
+        ${itemChildTabsHtml}
         <div class="item-main">
           <div class="item-num${isMastered ? ' mastered-num' : ''}">${isMastered ? '✓' : i + 1}</div>
           <div class="item-body">
@@ -1386,6 +1496,17 @@ function getCategoryAdvice(catStats) {
     catStats.forEach(c => advices.push({ icon: c.icon, name: c.name, type: 'mid', text: STRONG[c.id] }));
   }
   return advices;
+}
+
+// =============================================
+// PDF エクスポート（印刷ダイアログ → PDF保存）
+// =============================================
+function printGraduation() {
+  var child = currentChild();
+  var origTitle = document.title;
+  document.title = '成長の記録_' + (child.name || 'お子様') + '_梅乃園';
+  window.print();
+  document.title = origTitle;
 }
 
 /** 卒業画面を組み立てる */
